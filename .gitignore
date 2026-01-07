@@ -1,0 +1,58 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+build
+*.local
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.production
+.env.development
+backend/.env
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Test coverage
+coverage
+
+# Uploads (user content)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# MongoDB data (if local)
+data/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
