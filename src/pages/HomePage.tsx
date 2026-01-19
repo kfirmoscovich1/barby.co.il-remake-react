@@ -143,8 +143,15 @@ export function HomePage() {
         queryFn: () => publicApi.getShows({ page: 1, limit }),
         staleTime: 1000 * 60 * 5, // 5 minutes
     })
-    
-    const shows = useMemo(() => showsData?.items || [], [showsData])
+
+    // Safely extract shows from response data
+    const shows = useMemo(() => {
+        if (!showsData) return []
+        // Handle both possible response structures
+        if (Array.isArray(showsData)) return showsData
+        if (showsData.items && Array.isArray(showsData.items)) return showsData.items
+        return []
+    }, [showsData])
 
     // Filter shows by search query (title or description)
     const filteredShows = searchQuery.trim()
