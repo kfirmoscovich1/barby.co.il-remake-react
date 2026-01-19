@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Local Alef font */
+@font-face {
+  font-family: 'Alef';
+  src: url('/fonts/Alef-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Alef';
+  src: url('/fonts/Alef-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  html {
+    font-family: 'Alef', sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply text-barby-cream antialiased;
+    min-height: 100vh;
+    background-image: url('/bg.webp');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    font-family: 'Alef', sans-serif;
+  }
+
+  /* Ensure all text elements use Alef */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  label,
+  li {
+    font-family: 'Alef', sans-serif;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-barby-darker;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-barby-gold/50 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-barby-gold;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-barby-gold text-barby-black;
+  }
+
+  /* Focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-barby-gold ring-offset-2 ring-offset-barby-black;
+  }
+
+  /* Links */
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  /* Hide number input spinners */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+
+  /* 90s style buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-gradient-to-b from-barby-gold to-barby-gold-dark text-barby-black font-bold text-sm uppercase tracking-wider border-2 border-barby-gold-light shadow-vintage hover:shadow-glow-gold transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-transparent text-barby-gold border-2 border-barby-gold font-bold text-sm uppercase tracking-wider hover:bg-barby-gold hover:text-barby-black shadow-vintage hover:shadow-glow-gold transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-gradient-to-b from-barby-red to-barby-burgundy text-barby-cream font-bold text-sm uppercase tracking-wider border-2 border-barby-red-light shadow-vintage hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200;
+  }
+
+  /* 90s style cards */
+  .card-vintage {
+    @apply bg-barby-darker border-2 border-barby-gold/30 shadow-inner-dark relative overflow-hidden;
+  }
+
+  .card-vintage::before {
+    content: '';
+    @apply absolute inset-0 bg-vintage-noise opacity-5 pointer-events-none;
+  }
+
+  /* Input fields */
+  .input-vintage {
+    @apply w-full px-4 py-3 bg-barby-dark text-barby-cream border-2 border-barby-gold/30 placeholder:text-barby-cream/40 focus:border-barby-gold focus:shadow-glow-gold transition-all duration-200;
+  }
+
+  /* Section title */
+  .section-title {
+    @apply text-3xl md:text-4xl font-frank font-bold text-barby-gold relative inline-block after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-full after:h-0.5 after:bg-gradient-to-l after:from-transparent after:via-barby-gold after:to-transparent;
+  }
+
+  /* Decorative divider */
+  .divider-ornate {
+    @apply flex items-center gap-4 my-8;
+  }
+
+  .divider-ornate::before,
+  .divider-ornate::after {
+    content: '';
+    @apply flex-1 h-px bg-gradient-to-r from-transparent via-barby-gold/50 to-transparent;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply bg-barby-dark animate-pulse rounded;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 text-xs font-bold uppercase tracking-wider;
+  }
+
+  .badge-gold {
+    @apply badge bg-barby-gold text-barby-black;
+  }
+
+  .badge-red {
+    @apply badge bg-barby-red text-barby-cream;
+  }
+
+  /* Page content styles */
+  .page-content h2 {
+    @apply text-barby-gold font-bold text-lg mt-8 mb-3;
+  }
+
+  .page-content h2:first-child {
+    @apply mt-0;
+  }
+
+  .page-content p {
+    @apply text-barby-cream/80 leading-relaxed my-3;
+  }
+
+  .page-content a {
+    @apply text-barby-gold font-bold hover:text-barby-gold-light hover:underline transition-colors;
+  }
+
+  .page-content ul {
+    @apply list-disc pr-6 my-4 space-y-2;
+  }
+
+  .page-content li {
+    @apply text-barby-cream/80;
+  }
+
+  .page-content li::marker {
+    @apply text-barby-gold;
+  }
+
+  .page-content strong {
+    @apply text-barby-gold font-bold;
+  }
+
+  .page-content blockquote {
+    @apply border-r-4 border-l-0 border-barby-gold/50 bg-barby-dark/50 p-4 rounded-lg text-barby-cream/70 text-sm my-4;
+  }
+
+  /* Warning box style */
+  .page-content p:has(strong:first-child) strong:only-child {
+    @apply block bg-barby-red/20 px-3 py-2 rounded border-r-4 border-barby-red;
+  }
+}
+
+@layer utilities {
+
+  /* Text gradient */
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-barby-gold-light via-barby-gold to-barby-gold-dark bg-clip-text text-transparent;
+  }
+
+  /* Chandelier glow effect */
+  .chandelier-glow {
+    @apply bg-chandelier-glow;
+  }
+
+  /* Vintage texture overlay */
+  .texture-overlay {
+    @apply relative;
+  }
+
+  .texture-overlay::after {
+    content: '';
+    @apply absolute inset-0 bg-vintage-noise opacity-[0.02] pointer-events-none;
+  }
+
+  /* RTL specific utilities */
+  .flip-rtl {
+    @apply rtl:scale-x-[-1];
+  }
+}

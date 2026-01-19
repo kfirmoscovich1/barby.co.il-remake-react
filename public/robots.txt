@@ -1,0 +1,18 @@
+# Block all robots from crawling the site
+User-agent: *
+Disallow: /
+
+# Block specific search engines explicitly
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Yandex
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+# No sitemap
