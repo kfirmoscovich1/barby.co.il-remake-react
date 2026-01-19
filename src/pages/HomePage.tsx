@@ -5,28 +5,11 @@ import { GiWoodenChair } from 'react-icons/gi'
 import { TbRotate360 } from 'react-icons/tb'
 import { FiSearch, FiX } from 'react-icons/fi'
 import { Chandelier, ShowCard } from '@/components/feature'
-import { NoShowsMessage, LoadingError, Skeleton } from '@/components/common'
+import { NoShowsMessage, LoadingError } from '@/components/common'
 import { publicApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
 import { getImageUrl } from '@/utils'
 import type { Show } from '@/types'
-
-// Skeleton loader for shows grid
-function ShowsSkeleton() {
-    return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-            {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="bg-barby-darker/50 rounded-lg overflow-hidden">
-                    <Skeleton className="aspect-square w-full" />
-                    <div className="p-3">
-                        <Skeleton className="h-4 w-3/4 mb-2" />
-                        <Skeleton className="h-3 w-1/2" />
-                    </div>
-                </div>
-            ))}
-        </div>
-    )
-}
 
 // Format date in Hebrew - full format
 function formatShowDate(dateISO: string): { day: string; date: string } {
