@@ -9,6 +9,7 @@
 import { API_BASE } from './api'
 
 const PING_INTERVAL = 10 * 60 * 1000 // 10 minutes
+const isDev = import.meta.env.DEV // Only log in development
 
 let intervalId: ReturnType<typeof setInterval> | null = null
 let isWarmedUp = false
@@ -45,7 +46,7 @@ async function pingServer(): Promise<boolean> {
         })
         return response.ok
     } catch (error) {
-        console.warn('Keep-alive ping failed:', error)
+        if (isDev) console.warn('Keep-alive ping failed:', error)
         return false
     }
 }
@@ -62,10 +63,10 @@ export async function warmupServer(): Promise<void> {
         const success = await pingServer()
         if (success) {
             isWarmedUp = true
-            console.log('🔥 Server warmed up successfully')
+            if (isDev) console.log('🔥 Server warmed up successfully')
         }
     } catch (error) {
-        console.warn('Server warmup failed:', error)
+        if (isDev) console.warn('Server warmup failed:', error)
     }
 }
 
@@ -84,7 +85,7 @@ export function startKeepAlive(): void {
         pingServer()
     }, PING_INTERVAL)
     
-    console.log('🏃 Keep-alive service started')
+    if (isDev) console.log('🏃 Keep-alive service started')
 }
 
 /**
@@ -95,7 +96,7 @@ export function stopKeepAlive(): void {
     if (intervalId) {
         clearInterval(intervalId)
         intervalId = null
-        console.log('⏹️ Keep-alive service stopped')
+        if (isDev) console.log('⏹️ Keep-alive service stopped')
     }
 }
 
