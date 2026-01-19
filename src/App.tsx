@@ -30,7 +30,7 @@ function prefetchCriticalData() {
         queryFn: publicApi.getSettings,
         staleTime: 1000 * 60 * 15, // 15 minutes
     })
-    
+
     // Prefetch shows list (main content)
     queryClient.prefetchQuery({
         queryKey: queryKeys.shows.list({ limit: 24 }),

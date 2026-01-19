@@ -9,14 +9,14 @@ const AUTO_ARCHIVE_INTERVAL = 1000 * 60 * 60; // Run at most once per hour
 // Auto-archive shows with past dates (yesterday and before)
 export async function autoArchivePastShows(): Promise<number> {
     const now = Date.now();
-    
+
     // Skip if we ran recently (within the last hour)
     if (now - lastAutoArchiveRun < AUTO_ARCHIVE_INTERVAL) {
         return 0;
     }
-    
+
     lastAutoArchiveRun = now;
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString(); // Full ISO string for start of today
@@ -64,7 +64,7 @@ export async function getShows(
 
     // Generate cache key for this specific query
     const cacheKey = JSON.stringify({ page, limit, search, status, featured, archived, startDate, endDate, tags, includeUnpublished });
-    
+
     // Check cache (only for public, non-search queries)
     if (!search && !includeUnpublished && showsCache && showsCache.key === cacheKey) {
         if (Date.now() - showsCache.timestamp < SHOWS_CACHE_TTL) {
@@ -106,8 +106,27 @@ export async function getShows(
 
     const skip = (page - 1) * limit;
 
+    // Select only needed fields for list view (performance optimization)
+    const selectFields = {
+        _id: 1,
+        title: 1,
+        slug: 1,
+        dateISO: 1,
+        doorsTime: 1,
+        description: 1,
+        imageMediaId: 1,
+        status: 1,
+        isStanding: 1,
+        is360: 1,
+        venueName: 1,
+        ticketTiers: 1,
+        featured: 1,
+        archived: 1,
+    };
+
     const [shows, total] = await Promise.all([
         Show.find(query)
+            .select(selectFields)
             .sort({ dateISO: archived ? -1 : 1 })
             .skip(skip)
             .limit(limit)

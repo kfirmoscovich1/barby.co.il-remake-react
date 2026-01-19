@@ -1,16 +1,32 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BsPersonStanding } from 'react-icons/bs'
 import { GiWoodenChair } from 'react-icons/gi'
 import { TbRotate360 } from 'react-icons/tb'
 import { FiSearch, FiX } from 'react-icons/fi'
 import { Chandelier, ShowCard } from '@/components/feature'
-import { NoShowsMessage, LoadingError } from '@/components/common'
+import { NoShowsMessage, LoadingError, Skeleton } from '@/components/common'
 import { publicApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
-import { useInfiniteScroll } from '@/hooks'
 import { getImageUrl } from '@/utils'
 import type { Show } from '@/types'
+
+// Skeleton loader for shows grid
+function ShowsSkeleton() {
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="bg-barby-darker/50 rounded-lg overflow-hidden">
+                    <Skeleton className="aspect-square w-full" />
+                    <div className="p-3">
+                        <Skeleton className="h-4 w-3/4 mb-2" />
+                        <Skeleton className="h-3 w-1/2" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+}
 
 // Format date in Hebrew - full format
 function formatShowDate(dateISO: string): { day: string; date: string } {
@@ -110,21 +126,25 @@ function TodayShow({ show }: { show: ShowWithStock }) {
 }
 
 export function HomePage() {
-    const limit = 24  // Reduced from 100 for faster initial load
+    const limit = 24
     const [searchQuery, setSearchQuery] = useState('')
 
     // Fetch site settings for marquee items
     const { data: settingsData } = useQuery({
         queryKey: queryKeys.settings.public,
         queryFn: publicApi.getSettings,
+        staleTime: 1000 * 60 * 15, // 15 minutes
     })
     const marqueeItems = settingsData?.settings?.marqueeItems || []
 
-    const { items: shows, isLoading, isFetchingNextPage, hasNextPage, loadMoreRef, error } = useInfiniteScroll<Show>({
+    // Use simple query instead of infinite scroll for faster initial load
+    const { data: showsData, isLoading, error } = useQuery({
         queryKey: queryKeys.shows.list({ limit }),
-        queryFn: (page) => publicApi.getShows({ page, limit }),
-        limit,
+        queryFn: () => publicApi.getShows({ page: 1, limit }),
+        staleTime: 1000 * 60 * 5, // 5 minutes
     })
+    
+    const shows = useMemo(() => showsData?.items || [], [showsData])
 
     // Filter shows by search query (title or description)
     const filteredShows = searchQuery.trim()
@@ -262,19 +282,6 @@ export function HomePage() {
                         ))}
                     </div>
                 )}
-
-                {/* Load More Trigger */}
-                <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
-                    {isFetchingNextPage && (
-                        <div className="flex items-center gap-3 text-barby-cream/60">
-                            <div className="w-6 h-6 border-2 border-barby-gold border-t-transparent rounded-full animate-spin" />
-                            <span>טוען עוד הופעות...</span>
-                        </div>
-                    )}
-                    {!hasNextPage && shows.length > 0 && (
-                        <p className="text-barby-cream/40 text-sm">הגעת לסוף הרשימה</p>
-                    )}
-                </div>
             </section>
         </div>
     )
