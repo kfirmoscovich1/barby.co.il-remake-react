@@ -22,22 +22,30 @@ let intervalId: ReturnType<typeof setInterval> | null = null
 let isWarmedUp = false
 
 /**
- * Get the base URL for warmup endpoint
- * PERFORMANCE: Uses /ping endpoint which doesn't touch DB
+ * Get the base URL for endpoints
+ * PERFORMANCE: Uses /ping for keep-alive, /warmup-full for initial warmup
  */
-function getPingUrl(): string {
+function getEndpointUrl(endpoint: string): string {
     // If API_BASE is just '/api' (dev proxy), use relative URL
     if (API_BASE === '/api') {
-        return '/ping'
+        return `/${endpoint}`
     }
-    // If it's a full URL, extract the origin and append /ping
+    // If it's a full URL, extract the origin and append endpoint
     try {
         const url = new URL(API_BASE)
-        return `${url.origin}/ping`
+        return `${url.origin}/${endpoint}`
     } catch {
-        // Fallback: remove /api suffix and add /ping
-        return API_BASE.replace(/\/api\/?$/, '') + '/ping'
+        // Fallback: remove /api suffix and add endpoint
+        return API_BASE.replace(/\/api\/?$/, '') + `/${endpoint}`
     }
+}
+
+function getPingUrl(): string {
+    return getEndpointUrl('ping')
+}
+
+function getWarmupUrl(): string {
+    return getEndpointUrl('warmup-full')
 }
 
 /**
@@ -80,19 +88,44 @@ function handleVisibilityChange(): void {
 }
 
 /**
+ * Deep warmup that also warms the database connection
+ * PERFORMANCE: This ensures DB is ready for first real request
+ */
+async function deepWarmup(): Promise<boolean> {
+    try {
+        const startTime = Date.now()
+        const response = await fetch(getWarmupUrl(), {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'omit',
+        })
+        if (isDev && response.ok) {
+            const data = await response.json()
+            console.log(`🔥 Deep warmup: ${Date.now() - startTime}ms, DB ping: ${data.dbPing}ms`)
+        }
+        return response.ok
+    } catch (error) {
+        if (isDev) console.warn('Deep warmup failed:', error)
+        return false
+    }
+}
+
+/**
  * Warm up the server immediately when the app loads.
- * This is called once to ensure the server is ready before user interactions.
+ * PERFORMANCE: Uses deep warmup to also warm the database connection
  */
 export async function warmupServer(): Promise<void> {
     if (isWarmedUp) return
 
     try {
-        // PERFORMANCE: Send initial ping to wake up the server
         const startTime = Date.now()
-        const success = await pingServer()
+        // PERFORMANCE: First ping to wake up server process
+        await pingServer()
+        // PERFORMANCE: Then deep warmup to establish DB connection
+        const success = await deepWarmup()
         if (success) {
             isWarmedUp = true
-            if (isDev) console.log(`🔥 Server warmed up in ${Date.now() - startTime}ms`)
+            if (isDev) console.log(`🔥 Full warmup completed in ${Date.now() - startTime}ms`)
         }
     } catch (error) {
         if (isDev) console.warn('Server warmup failed:', error)

@@ -121,6 +121,23 @@ app.get('/ping', (_req, res) => {
 });
 
 /**
+ * PERFORMANCE: Deep warmup endpoint that warms up DB connection
+ * - Touches database to ensure connection is fully established
+ * - Use this for initial warmup, /ping for subsequent keep-alive
+ */
+app.get('/warmup-full', async (_req, res) => {
+    try {
+        const startTime = Date.now();
+        // Touch the database to ensure connection is warm
+        await import('mongoose').then(m => m.default.connection.db?.admin().ping());
+        const duration = Date.now() - startTime;
+        res.json({ status: 'warm', dbPing: duration });
+    } catch (error) {
+        res.json({ status: 'warming', error: 'DB not ready' });
+    }
+});
+
+/**
  * PERFORMANCE: Health check with optional DB status
  * - Fast response for load balancers
  * - Includes DB connection state for debugging

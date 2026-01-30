@@ -71,10 +71,10 @@ export async function connectDB(): Promise<void> {
             maxPoolSize: 10, // Maximum connections in pool
             minPoolSize: 2,  // Keep minimum connections warm
 
-            // TIMEOUTS: Prevent hanging connections
-            serverSelectionTimeoutMS: 5000, // Time to find a server
-            socketTimeoutMS: 45000, // Socket timeout for operations
-            connectTimeoutMS: 10000, // Initial connection timeout
+            // TIMEOUTS: Faster timeouts for quicker cold starts
+            serverSelectionTimeoutMS: 3000, // Time to find a server (reduced)
+            socketTimeoutMS: 30000, // Socket timeout for operations
+            connectTimeoutMS: 5000, // Initial connection timeout (reduced)
 
             // KEEP-ALIVE: Prevent connection drops during idle periods
             heartbeatFrequencyMS: 10000, // Check connection health every 10s

@@ -24,31 +24,30 @@ import { AuthProvider } from '@/context/AuthContext'
 import { queryClient, queryKeys } from '@/services/queryClient'
 import { router } from '@/router'
 import { ErrorBoundary, SkipLink } from '@/components/common'
-import { startKeepAlive, stopKeepAlive } from '@/services/keepAlive'
+import { startKeepAlive, stopKeepAlive, warmupServer } from '@/services/keepAlive'
 import { publicApi } from '@/services/api'
 
 /**
  * PERFORMANCE: Prefetch critical data on app load using parallel requests
  * This reduces perceived load time by fetching data before user navigates
  */
-function prefetchCriticalData(): void {
-    // PERFORMANCE: Use Promise.all for parallel prefetching
-    // Both requests start simultaneously, reducing total wait time
-    Promise.all([
-        // Prefetch settings (needed for layout/navigation)
+async function prefetchCriticalData(): Promise<void> {
+    // PERFORMANCE: First warm up the server and DB connection
+    await warmupServer()
+
+    // PERFORMANCE: Then prefetch data in parallel
+    await Promise.all([
         queryClient.prefetchQuery({
             queryKey: queryKeys.settings.public,
             queryFn: publicApi.getSettings,
-            staleTime: 1000 * 60 * 15, // 15 minutes - settings rarely change
+            staleTime: 1000 * 60 * 15,
         }),
-        // Prefetch shows list (main homepage content)
         queryClient.prefetchQuery({
             queryKey: queryKeys.shows.list({ limit: 24 }),
             queryFn: () => publicApi.getShows({ page: 1, limit: 24 }),
-            staleTime: 1000 * 60 * 5, // 5 minutes
+            staleTime: 1000 * 60 * 5,
         }),
     ]).catch((error) => {
-        // Log but don't fail - data will be fetched on component mount
         console.warn('Prefetch failed:', error)
     })
 }

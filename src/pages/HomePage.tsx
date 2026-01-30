@@ -146,27 +146,38 @@ export function HomePage() {
         })
         : shows
 
-    // Find all today's shows and sort by doors time
-    const todayShows = filteredShows
-        .filter(show => show && show.dateISO && isToday(show.dateISO))
-        .sort((a, b) => {
-            // Sort by doors time (HH:MM format)
-            return (a.doorsTime || '00:00').localeCompare(b.doorsTime || '00:00')
-        })
-
     // Get current time in HH:MM format
     const now = new Date()
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
 
-    // Find the next upcoming show (doors time hasn't passed yet) or the last one if all have passed
-    const upcomingTodayShow = todayShows.find(show => (show.doorsTime || '00:00') > currentTime) || todayShows[todayShows.length - 1]
+    // Find all today's shows that haven't passed yet (doors time > current time)
+    // Sorted by doors time - earliest first
+    const todayUpcomingShows = filteredShows
+        .filter(show => show && show.dateISO && isToday(show.dateISO))
+        .filter(show => (show.doorsTime || '00:00') > currentTime) // Only shows that haven't started
+        .sort((a, b) => {
+            // Sort by doors time (HH:MM format) - earliest first
+            return (a.doorsTime || '00:00').localeCompare(b.doorsTime || '00:00')
+        })
 
-    // Other shows exclude all of today's shows except the featured one
+    // The first show of the day (earliest doors time that hasn't passed) goes to the featured spot
+    // Once its time passes, it goes to archive (handled by backend), not down to the grid
+    const featuredTodayShow = todayUpcomingShows.length > 0 ? todayUpcomingShows[0] : null
+
+    // Other today's shows (2nd, 3rd, etc.) go to the regular grid
+    const otherTodayShows = todayUpcomingShows.slice(1)
+
+    // Other shows = future shows (not today) + other today's shows (excluding the featured one)
     const otherShows = filteredShows
         .filter(show => show && show.dateISO)
-        .filter(show =>
-            !isToday(show.dateISO) || (upcomingTodayShow && show.id === upcomingTodayShow.id ? false : true)
-        ).filter(show => show.id !== upcomingTodayShow?.id)
+        .filter(show => {
+            // If it's today's show - only include if it's in otherTodayShows
+            if (isToday(show.dateISO)) {
+                return otherTodayShows.some(s => s.id === show.id)
+            }
+            // Future shows - include all
+            return true
+        })
 
     // Handle error state
     if (error && shows.length === 0) {
@@ -222,9 +233,9 @@ export function HomePage() {
             )}
 
             {/* Today's Show - Featured */}
-            {upcomingTodayShow && !searchQuery && (
+            {featuredTodayShow && !searchQuery && (
                 <section className="container mx-auto px-4 pb-6">
-                    <TodayShow show={upcomingTodayShow} />
+                    <TodayShow show={featuredTodayShow} />
                 </section>
             )}
 
