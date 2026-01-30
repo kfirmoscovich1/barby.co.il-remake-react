@@ -150,32 +150,33 @@ export function HomePage() {
     const now = new Date()
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
 
-    // Find all today's shows that haven't passed yet (doors time > current time)
-    // Sorted by doors time - earliest first
-    const todayUpcomingShows = filteredShows
+    // Find all today's shows sorted by doors time
+    const allTodayShows = filteredShows
         .filter(show => show && show.dateISO && isToday(show.dateISO))
-        .filter(show => (show.doorsTime || '00:00') > currentTime) // Only shows that haven't started
         .sort((a, b) => {
             // Sort by doors time (HH:MM format) - earliest first
             return (a.doorsTime || '00:00').localeCompare(b.doorsTime || '00:00')
         })
 
-    // The first show of the day (earliest doors time that hasn't passed) goes to the featured spot
-    // Once its time passes, it goes to archive (handled by backend), not down to the grid
+    // Find today's shows that haven't passed yet (doors time > current time)
+    const todayUpcomingShows = allTodayShows.filter(show => (show.doorsTime || '00:00') > currentTime)
+
+    // The first upcoming show goes to the featured spot at the top
+    // If all shows have passed, no featured show
     const featuredTodayShow = todayUpcomingShows.length > 0 ? todayUpcomingShows[0] : null
 
-    // Other today's shows (2nd, 3rd, etc.) go to the regular grid
-    const otherTodayShows = todayUpcomingShows.slice(1)
-
-    // Other shows = future shows (not today) + other today's shows (excluding the featured one)
+    // Other shows to display in the grid:
+    // - All future shows (not today)
+    // - Today's shows that passed their time (they stay visible until archived by backend at end of day)
+    // - Today's upcoming shows except the featured one
     const otherShows = filteredShows
         .filter(show => show && show.dateISO)
         .filter(show => {
-            // If it's today's show - only include if it's in otherTodayShows
-            if (isToday(show.dateISO)) {
-                return otherTodayShows.some(s => s.id === show.id)
+            // Exclude the featured show
+            if (featuredTodayShow && show.id === featuredTodayShow.id) {
+                return false
             }
-            // Future shows - include all
+            // Include all other shows (future, past today, other today upcoming)
             return true
         })
 
