@@ -1,0 +1,90 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isEditor() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'editor'];
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /users/{userId} {
+      // Users can only read their own profile; editors/admins can read all
+      allow read: if request.auth.uid == userId || isEditor();
+      // Users can create their own profile (registration)
+      allow create: if request.auth.uid == userId;
+      // Users can update own profile but CANNOT change role or isActive
+      allow update: if isAdmin() || 
+        (request.auth.uid == userId && 
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isActive']));
+      allow delete: if isAdmin();
+    }
+
+    match /shows/{showId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /pages/{pageId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /siteSettings/{docId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /faq/{faqId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /media/{mediaId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isEditor();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    match /giftCards/{giftCardId} {
+      // Only the purchaser, recipient, or an editor can read
+      allow read: if isAuthenticated() && 
+        (resource.data.purchaserId == request.auth.uid || isEditor());
+      // Only authenticated users can create (purchasing a gift card)
+      allow create: if isAuthenticated();
+      // Only editors can update gift cards (use is done through validated API)
+      allow update: if isEditor();
+      allow delete: if false;
+    }
+
+    match /orders/{orderId} {
+      // Owner or editor can read
+      allow read: if isAuthenticated() &&
+        (resource.data.userId == request.auth.uid || isEditor());
+      // Authenticated users can create orders
+      allow create: if isAuthenticated();
+      // Only editors can update orders (cancel, status changes)
+      allow update: if isEditor();
+      allow delete: if false;
+    }
+
+    match /counters/{counterId} {
+      allow read: if isAuthenticated();
+      // Only editors can write counters (order number generation)
+      allow write: if isEditor();
+    }
+  }
+}

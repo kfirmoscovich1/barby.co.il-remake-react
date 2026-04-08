@@ -1,0 +1,54 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "shows",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "published", "order": "ASCENDING" },
+                { "fieldPath": "archived", "order": "ASCENDING" },
+                { "fieldPath": "dateISO", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "shows",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "archived", "order": "ASCENDING" },
+                { "fieldPath": "dateISO", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "shows",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "dateISO", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "faq",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "isActive", "order": "ASCENDING" },
+                { "fieldPath": "order", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "auditLogs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "actorUserId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "auditLogs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "action", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        }
+    ],
+    "fieldOverrides": [ ]
+}

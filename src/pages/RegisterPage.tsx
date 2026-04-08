@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Input } from '@/components/common'
 import { Chandelier } from '@/components/feature'
+import { authApi } from '@/services/api'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { registerFormSchema, type RegisterFormInput } from '@/utils/validation'
@@ -24,13 +25,22 @@ export function RegisterPage() {
     const onSubmit = async (data: RegisterFormInput) => {
         setIsLoading(true)
         try {
-            // TODO: Implement API call to register user
-            console.log('Registering user:', data)
-            await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
+            await authApi.register({
+                email: data.email,
+                password: data.password,
+                name: `${data.firstName} ${data.lastName}`.trim(),
+            })
             toast.success('נרשמת בהצלחה!')
             navigate('/login')
-        } catch (error) {
-            toast.error('שגיאה בהרשמה')
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : ''
+            if (msg.includes('email-already-in-use')) {
+                toast.error('כתובת האימייל כבר רשומה במערכת')
+            } else if (msg.includes('weak-password')) {
+                toast.error('הסיסמה חלשה מדי')
+            } else {
+                toast.error('שגיאה בהרשמה')
+            }
         } finally {
             setIsLoading(false)
         }

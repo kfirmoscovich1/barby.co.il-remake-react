@@ -1,5 +1,6 @@
 import { useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import DOMPurify from 'dompurify'
 import { publicApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
 import { PageSkeleton, NoPageContentMessage } from '@/components/common'
@@ -117,7 +118,7 @@ export function PageContent() {
                     <div className="bg-barby-darker/40 border border-barby-gold/20 rounded-lg p-6 md:p-8 hover:border-barby-gold/50 transition-all">
                         <div
                             className="page-content"
-                            dangerouslySetInnerHTML={{ __html: page.contentRichText }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(page.contentRichText) }}
                         />
                     </div>
                 )}

@@ -85,13 +85,12 @@ export function AdminSettings() {
     const updateMutation = useMutation({
         mutationFn: (formData: SettingsFormData) => adminApi.updateSettings({
             footer: {
-                ...data?.settings.footer,
-                address: formData.footer.address,
-                phone: formData.footer.phone,
-                email: formData.footer.email,
-                copyrightText: formData.footer.copyrightText,
-                googleMapsUrl: formData.footer.googleMapsUrl || undefined,
-                wazeUrl: formData.footer.wazeUrl || undefined,
+                address: formData.footer.address || '',
+                phone: formData.footer.phone || '',
+                email: formData.footer.email || '',
+                copyrightText: formData.footer.copyrightText || '',
+                googleMapsUrl: formData.footer.googleMapsUrl || '',
+                wazeUrl: formData.footer.wazeUrl || '',
                 socialLinks: socialLinks,
             },
             marqueeItems,

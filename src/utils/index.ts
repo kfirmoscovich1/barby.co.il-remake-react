@@ -59,7 +59,7 @@ export function debounce<T extends (...args: Parameters<T>) => void>(
     }
 }
 
-export function getImageUrl(mediaIdOrUrl: string | undefined, fallback = '/placeholder.svg'): string {
+export function getImageUrl(mediaIdOrUrl: string | undefined, fallback = ''): string {
     if (!mediaIdOrUrl) return fallback
     // If it's a data URL (base64), return as-is
     if (mediaIdOrUrl.startsWith('data:')) return mediaIdOrUrl
@@ -67,8 +67,9 @@ export function getImageUrl(mediaIdOrUrl: string | undefined, fallback = '/place
     if (mediaIdOrUrl.startsWith('http://') || mediaIdOrUrl.startsWith('https://')) {
         return mediaIdOrUrl
     }
-    // Otherwise, treat it as a media ID from MongoDB
-    return `/api/media/${mediaIdOrUrl}`
+    // Otherwise, it's a Firestore media document ID - return empty
+    // Images from Firestore should be fetched via useMediaUrl hook
+    return fallback
 }
 
 export function scrollToTop(): void {

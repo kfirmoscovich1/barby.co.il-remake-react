@@ -4,7 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/webp" href="/favicon.webp" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- Preload critical fonts -->
+  <link rel="preload" href="/fonts/Alef-Regular.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="/fonts/Alef-Bold.ttf" as="font" type="font/ttf" crossorigin />
 
   <!-- Block search engines and robots -->
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
@@ -18,7 +22,16 @@
     content="בארבי - מועדון המוזיקה המוביל בישראל מאז 1988. הופעות חיות, אירועים ותרבות בנמל יפו, יפו - תל אביב. צפו בלוח  ההופעות והזמינו כרטיסים." />
   <meta name="keywords" content="בארבי, מועדון, הופעות, מוזיקה חיה, תל אביב, קונצרטים, לייב, הופעות חיות, כרטיסים" />
   <meta name="author" content="בארבי מועדון מוזיקה" />
-  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="theme-color" content="#1a0505" />
+  <meta name="theme-color" content="#1a0505" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#1a0505" media="(prefers-color-scheme: light)" />
+
+  <!-- Apple Mobile Web App -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="בארבי" />
+  <meta name="msapplication-TileColor" content="#1a0505" />
+  <meta name="msapplication-navbutton-color" content="#1a0505" />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
@@ -97,10 +110,21 @@
 
     body {
       font-family: 'Alef', sans-serif !important;
+      background-color: #1a0505;
       background-image: url('/bg.webp');
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
+      background-repeat: no-repeat;
+    }
+
+    /* Prevent white flash on load */
+    html {
+      background-color: #1a0505;
+    }
+
+    #root {
+      min-height: 100vh;
     }
   </style>
 </head>

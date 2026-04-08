@@ -1,39 +1,20 @@
 /**
  * @file AuthContext.tsx
- * @description Authentication context provider using React Context API.
- * 
+ * @description Authentication context provider using Firebase Auth.
+ *
  * Features:
- * - JWT-based authentication with refresh tokens
- * - Automatic token refresh before expiration
- * - User role management (user, editor, admin)
- * - Persistent sessions using HTTP-only cookies
- * 
- * Usage:
- * ```tsx
- * const { user, isAuthenticated, isEditor, login, logout } = useAuth()
- * ```
+ * - Firebase Auth with email/password
+ * - User profile from Firestore 'users' collection
+ * - Automatic auth state tracking via onAuthStateChanged
+ * - User role management (editor, admin)
  */
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { useQueryClient } from '@tanstack/react-query'
+import { auth, db } from '@/lib/firebase'
 import type { User } from '@/types'
-import { authApi } from '@/services/api'
-import { queryKeys } from '@/services/queryClient'
-
-// Demo user for development
-const DEMO_USER: User = {
-    id: 'demo-user-1',
-    email: 'kfir8990@gmail.com',
-    name: 'כפיר מוסקוביץ',
-    role: 'admin' as const,
-    passwordHash: '',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-}
-
-// Set to true to use demo user without backend
-const USE_DEMO_USER = false
 
 interface AuthContextType {
     user: User | null
@@ -47,97 +28,96 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+async function getOrCreateUserDoc(firebaseUser: { uid: string; email: string | null; displayName: string | null }): Promise<User | null> {
+    const userDocRef = doc(db, 'users', firebaseUser.uid)
+    let userDoc = await getDoc(userDocRef)
+
+    // Auto-create Firestore user document if it doesn't exist
+    if (!userDoc.exists()) {
+        const newUserData = {
+            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+            email: firebaseUser.email || '',
+            role: 'viewer',
+            isActive: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        }
+        await setDoc(userDocRef, newUserData)
+        userDoc = await getDoc(userDocRef)
+    }
+
+    const data = userDoc.data()!
+
+    // Block deactivated users
+    if (data.isActive === false) {
+        return null
+    }
+
+    return {
+        id: firebaseUser.uid,
+        email: data.email || firebaseUser.email || '',
+        name: data.name || '',
+        role: data.role || 'viewer',
+        isActive: data.isActive ?? true,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+    }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const queryClient = useQueryClient()
-    const [isInitialized, setIsInitialized] = useState(false)
-    const [demoLoggedIn, setDemoLoggedIn] = useState(() => {
-        return USE_DEMO_USER && localStorage.getItem('demoLoggedIn') === 'true'
-    })
-
-    // Check if we have a token on mount
-    useEffect(() => {
-        const token = localStorage.getItem('accessToken')
-        if (!token && !USE_DEMO_USER) {
-            setIsInitialized(true)
-        }
-        if (USE_DEMO_USER) {
-            setIsInitialized(true)
-        }
-    }, [])
-
-    const { data, isLoading, isFetched } = useQuery({
-        queryKey: queryKeys.auth.me,
-        queryFn: authApi.me,
-        enabled: !USE_DEMO_USER && !!localStorage.getItem('accessToken'),
-        retry: false,
-    })
+    const [user, setUser] = useState<User | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        if (isFetched && !USE_DEMO_USER) {
-            setIsInitialized(true)
-        }
-    }, [isFetched])
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                try {
+                    const userProfile = await getOrCreateUserDoc(firebaseUser)
+                    if (!userProfile) {
+                        // User is deactivated — sign them out
+                        await firebaseSignOut(auth)
+                        setUser(null)
+                    } else {
+                        setUser(userProfile)
+                    }
+                } catch {
+                    setUser(null)
+                }
+            } else {
+                setUser(null)
+                queryClient.clear()
+            }
+            setIsLoading(false)
+        })
 
-    const loginMutation = useMutation({
-        mutationFn: ({ email, password }: { email: string; password: string }) =>
-            authApi.login(email, password),
-        onSuccess: (data) => {
-            localStorage.setItem('accessToken', data.accessToken)
-            localStorage.setItem('refreshToken', data.refreshToken)
-            queryClient.setQueryData(queryKeys.auth.me, { user: data.user })
-            // Invalidate to refetch user data
-            queryClient.invalidateQueries({ queryKey: queryKeys.auth.me })
-        },
-    })
-
-    const logoutMutation = useMutation({
-        mutationFn: authApi.logout,
-        onSettled: () => {
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
-            queryClient.clear()
-        },
-    })
-
-    // Use demo user or real user
-    const user = USE_DEMO_USER ? (demoLoggedIn ? DEMO_USER : null) : (data?.user ?? null)
-    const isAuthenticated = !!user
-    const isAdmin = user?.role === 'admin'
-    const isEditor = user?.role === 'editor' || isAdmin
+        return unsubscribe
+    }, [queryClient])
 
     const login = async (email: string, password: string) => {
-        if (USE_DEMO_USER) {
-            // Demo login - any credentials work
-            localStorage.setItem('demoLoggedIn', 'true')
-            setDemoLoggedIn(true)
-            return
+        const credential = await signInWithEmailAndPassword(auth, email, password)
+        const userProfile = await getOrCreateUserDoc(credential.user)
+        if (!userProfile) {
+            await firebaseSignOut(auth)
+            throw new Error('החשבון שלך הושבת. פנה למנהל המערכת.')
         }
-        await loginMutation.mutateAsync({ email, password })
+        setUser(userProfile)
     }
 
     const logout = async () => {
-        if (USE_DEMO_USER) {
-            localStorage.removeItem('demoLoggedIn')
-            setDemoLoggedIn(false)
-            return
-        }
-        await logoutMutation.mutateAsync()
+        await firebaseSignOut(auth)
+        queryClient.clear()
     }
 
-    // Show loading while checking auth
-    if (!isInitialized || (!USE_DEMO_USER && isLoading && localStorage.getItem('accessToken'))) {
-        return (
-            <div className="min-h-screen bg-barby-black flex items-center justify-center">
-                <div className="text-barby-gold animate-pulse text-xl">טוען...</div>
-            </div>
-        )
-    }
+    const isAuthenticated = !!user
+    const isAdmin = user?.role === 'admin'
+    const isEditor = user?.role === 'editor' || isAdmin
 
     return (
         <AuthContext.Provider
             value={{
                 user,
-                isLoading: USE_DEMO_USER ? false : (isLoading || loginMutation.isPending),
+                isLoading,
                 isAuthenticated,
                 isAdmin,
                 isEditor,

@@ -4,7 +4,13 @@ import { BsPersonStanding } from 'react-icons/bs'
 import { GiWoodenChair } from 'react-icons/gi'
 import { TbRotate360 } from 'react-icons/tb'
 import { Chandelier } from './Chandelier'
-import { getImageUrl } from '@/utils'
+import { MediaImage } from '@/components/common'
+
+// Strip HTML tags from rich text for plain text display
+function stripHtml(html: string): string {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    return doc.body.textContent || ''
+}
 
 // Extended Show type with optional remainingTickets field
 type ShowWithStock = Show & { remainingTickets?: number }
@@ -27,8 +33,8 @@ interface ShowCardProps {
 
 export function ShowCard({ show }: ShowCardProps) {
     const isSoldOut = show.status === 'sold_out'
-    const isLowStock = !isSoldOut && (show.status === 'few_left' || (show.remainingTickets !== undefined && show.remainingTickets <= 20))
-    const imageUrl = getImageUrl(show.imageMediaId)
+    const isCancelled = show.status === 'cancelled'
+    const isLowStock = !isSoldOut && !isCancelled && (show.status === 'few_left' || (show.remainingTickets !== undefined && show.remainingTickets <= 20))
     const { day, date, fullDate } = formatShowDate(show.dateISO)
 
     // Check if show is today
@@ -39,9 +45,10 @@ export function ShowCard({ show }: ShowCardProps) {
     // Build accessible label for screen readers
     const getAriaLabel = () => {
         let label = `${show.title}`
-        if (show.description) label += `, ${show.description}`
+        if (show.description) label += `, ${stripHtml(show.description)}`
         label += `. ${fullDate}, פתיחת דלתות ${show.doorsTime || 'לא צוין'}`
-        if (isSoldOut) label += '. הכרטיסים אזלו'
+        if (isCancelled) label += '. ההופעה בוטלה'
+        else if (isSoldOut) label += '. הכרטיסים אזלו'
         else if (isToday) label += '. ההופעה היום'
         else if (isLowStock) label += '. כרטיסים בודדים נותרו'
         if (show.is360) label += '. מופע 360'
@@ -50,33 +57,38 @@ export function ShowCard({ show }: ShowCardProps) {
         return label
     }
 
-    // Sold out shows are not clickable (unless it's today's show)
-    if (isSoldOut && !isToday) {
+    // Cancelled or Sold out shows - still clickable but with muted style
+    if ((isSoldOut && !isToday) || isCancelled) {
         return (
-            <article
-                className="block bg-barby-darker/40 border border-barby-gold/20 rounded-lg overflow-hidden cursor-default"
+            <Link
+                to={`/show/${show.slug || show.id}`}
+                className="block bg-barby-darker/40 border border-barby-gold/20 rounded-lg overflow-hidden hover:border-barby-gold/40 transition-all"
                 aria-label={getAriaLabel()}
             >
                 {/* Show Image */}
                 <div className="aspect-square overflow-hidden relative">
-                    {imageUrl ? (
-                        <img
-                            src={imageUrl}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center" aria-hidden="true">
-                            <Chandelier size="md" animate={false} />
-                        </div>
-                    )}
+                    <MediaImage
+                        mediaId={show.imageMediaId}
+                        alt=""
+                        variant="thumbnail"
+                        className="w-full h-full object-cover"
+                        fallback={
+                            <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center" aria-hidden="true">
+                                <Chandelier size="md" animate={false} />
+                            </div>
+                        }
+                    />
 
                     {/* Status badge */}
-                    <div className="absolute top-2 right-2 bg-barby-red text-barby-cream px-2 py-1 text-xs font-bold rounded" aria-hidden="true">
-                        הכרטיסים אזלו!
-                    </div>
+                    {isCancelled ? (
+                        <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 text-xs font-bold rounded" aria-hidden="true">
+                            בוטל
+                        </div>
+                    ) : (
+                        <div className="absolute top-2 right-2 bg-barby-red text-barby-cream px-2 py-1 text-xs font-bold rounded" aria-hidden="true">
+                            הכרטיסים אזלו!
+                        </div>
+                    )}
 
                     {/* Show type icons - standing, seated or 360 */}
                     <div className="absolute bottom-2 left-2 flex gap-1" aria-hidden="true">
@@ -107,7 +119,7 @@ export function ShowCard({ show }: ShowCardProps) {
 
                     {/* Show Name/Description - Fixed height with or without content */}
                     <p className="text-barby-cream/50 text-xs truncate h-4 mt-1">
-                        {show.description || '\u00A0'}
+                        {show.description ? stripHtml(show.description) : '\u00A0'}
                     </p>
 
                     {/* Date & Time - Always at bottom */}
@@ -116,12 +128,19 @@ export function ShowCard({ show }: ShowCardProps) {
                         <p>דלתות: {show.doorsTime || '--:--'}</p>
                     </div>
                 </div>
-            </article>
+            </Link>
         )
     }
 
-    // Badge to show - priority: Today > Low Stock
+    // Badge to show - priority: Sold Out (today) > Today > Low Stock
     const renderBadge = () => {
+        if (isSoldOut) {
+            return (
+                <div className="absolute top-2 right-2 bg-barby-red text-barby-cream px-2 py-1 text-xs font-bold rounded">
+                    הכרטיסים אזלו!
+                </div>
+            )
+        }
         if (isToday) {
             return (
                 <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 text-xs font-bold rounded animate-pulse">
@@ -147,19 +166,17 @@ export function ShowCard({ show }: ShowCardProps) {
         >
             {/* Show Image */}
             <div className="aspect-square overflow-hidden relative">
-                {imageUrl ? (
-                    <img
-                        src={imageUrl}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center" aria-hidden="true">
-                        <Chandelier size="md" animate={false} />
-                    </div>
-                )}
+                <MediaImage
+                    mediaId={show.imageMediaId}
+                    alt=""
+                    variant="thumbnail"
+                    className="w-full h-full object-cover"
+                    fallback={
+                        <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center" aria-hidden="true">
+                            <Chandelier size="md" animate={false} />
+                        </div>
+                    }
+                />
 
                 {/* Status badge */}
                 {renderBadge()}
@@ -193,7 +210,7 @@ export function ShowCard({ show }: ShowCardProps) {
 
                 {/* Show Name/Description - Fixed height with or without content */}
                 <p className="text-barby-cream/70 text-xs truncate h-4 mt-1">
-                    {show.description || '\u00A0'}
+                    {show.description ? stripHtml(show.description) : '\u00A0'}
                 </p>
 
                 {/* Date & Time - Always at bottom */}

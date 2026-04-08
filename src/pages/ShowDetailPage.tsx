@@ -1,24 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { formatPrice, getImageUrl } from '@/utils'
-import { Button, EmptyState, PageSkeleton, Input } from '@/components/common'
+import DOMPurify from 'dompurify'
+import { formatPrice } from '@/utils'
+import { Button, EmptyState, ShowDetailSkeleton, Input, MediaImage } from '@/components/common'
 import { Chandelier } from '@/components/feature'
 import { publicApi, orderApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
 import { useAuth } from '@/context/AuthContext'
-import { FiArrowRight, FiCreditCard, FiUser, FiCheck, FiLock } from 'react-icons/fi'
+import { FiArrowRight, FiUser, FiCheck, FiLock } from 'react-icons/fi'
 import {
     validateEmail,
     validatePhone,
     validateIdNumber,
-    validateCardNumber,
-    validateExpiry,
-    validateCvv,
     handlePhoneInput,
-    handleCardNumberInput,
-    handleExpiryInput,
-    handleCvvInput,
     handleIdNumberInput,
     ERROR_MESSAGES,
 } from '@/utils/validation'
@@ -52,17 +47,13 @@ export function ShowDetailPage() {
     // Track quantities for each ticket tier - must be before any conditional returns!
     const [quantities, setQuantities] = useState<number[]>([])
     const [showCheckoutForm, setShowCheckoutForm] = useState(false)
-    const [checkoutStep, setCheckoutStep] = useState<'details' | 'payment' | 'confirmation'>('details')
+    const [checkoutStep, setCheckoutStep] = useState<'details' | 'confirmation'>('details')
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
         idNumber: '',
         email: '',
         phone: '',
-        cardNumber: '',
-        cardExpiry: '',
-        cardCvv: '',
-        cardHolder: '',
     })
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
     const [orderNumber, setOrderNumber] = useState<string>('')
@@ -87,12 +78,14 @@ export function ShowDetailPage() {
 
     // Reset quantities when show changes
     const ticketTiersCount = show?.ticketTiers?.length ?? 0
-    if (quantities.length !== ticketTiersCount && ticketTiersCount > 0) {
-        setQuantities(show!.ticketTiers.map(() => 0))
-    }
+    useEffect(() => {
+        if (ticketTiersCount > 0) {
+            setQuantities(prev => prev.length === ticketTiersCount ? prev : new Array(ticketTiersCount).fill(0))
+        }
+    }, [ticketTiersCount])
 
     if (isLoading) {
-        return <PageSkeleton />
+        return <ShowDetailSkeleton />
     }
 
     if (error || !show) {
@@ -115,8 +108,8 @@ export function ShowDetailPage() {
     }
 
     const isSoldOut = show.status === 'sold_out'
+    const isCancelled = show.status === 'cancelled'
     const { day, fullDate } = formatShowDate(show.dateISO)
-    const imageUrl = show.imageMediaId ? getImageUrl(show.imageMediaId) : null
 
     // Calculate total
     const total = show.ticketTiers.reduce((sum, tier, index) => sum + tier.price * (quantities[index] || 0), 0)
@@ -171,24 +164,7 @@ export function ShowDetailPage() {
         setFormErrors(errors)
         if (Object.keys(errors).length > 0) return
 
-        setCheckoutStep('payment')
-    }
-
-    const handleSubmitPayment = () => {
-        const errors: Record<string, string> = {}
-
-        if (!formData.cardNumber.trim()) errors.cardNumber = ERROR_MESSAGES.REQUIRED
-        else if (!validateCardNumber(formData.cardNumber)) errors.cardNumber = ERROR_MESSAGES.CARD_NUMBER_INVALID_LUHN
-        if (!formData.cardHolder.trim()) errors.cardHolder = ERROR_MESSAGES.REQUIRED
-        if (!formData.cardExpiry.trim()) errors.cardExpiry = ERROR_MESSAGES.REQUIRED
-        else if (!validateExpiry(formData.cardExpiry)) errors.cardExpiry = ERROR_MESSAGES.EXPIRY_INVALID_FORMAT
-        if (!formData.cardCvv.trim()) errors.cardCvv = ERROR_MESSAGES.REQUIRED
-        else if (!validateCvv(formData.cardCvv)) errors.cardCvv = ERROR_MESSAGES.CVV_INVALID_LENGTH
-
-        setFormErrors(errors)
-        if (Object.keys(errors).length > 0) return
-
-        // Create the order
+        // Create the order directly (payment integration pending)
         setIsSubmitting(true)
         createOrderMutation.mutate({
             showId: show!.id,
@@ -217,7 +193,7 @@ export function ShowDetailPage() {
                     <div className="space-y-3">
                         <Button
                             className="w-full"
-                            onClick={() => navigate('/login', { state: { from: `/shows/${slug}` } })}
+                            onClick={() => navigate('/login', { state: { from: `/show/${slug}` } })}
                         >
                             התחבר / הירשם
                         </Button>
@@ -240,26 +216,20 @@ export function ShowDetailPage() {
             {/* Progress Steps */}
             <div className="flex items-center justify-center gap-4 mb-8">
                 <div className={`flex items-center gap-2 ${checkoutStep === 'details' ? 'text-barby-gold' : 'text-barby-cream/40'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${checkoutStep === 'details' ? 'border-barby-gold bg-barby-gold/20' : checkoutStep === 'payment' || checkoutStep === 'confirmation' ? 'border-green-500 bg-green-500/20' : 'border-barby-cream/40'}`}>
-                        {checkoutStep === 'payment' || checkoutStep === 'confirmation' ? <FiCheck className="text-green-500" /> : '1'}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${checkoutStep === 'details' ? 'border-barby-gold bg-barby-gold/20' : 'border-green-500 bg-green-500/20'}`}>
+                        {checkoutStep === 'confirmation' ? <FiCheck className="text-green-500" /> : '1'}
                     </div>
                     <span className="hidden sm:inline">פרטים אישיים</span>
                 </div>
                 <div className="w-8 h-0.5 bg-barby-gold/30" />
-                <div className={`flex items-center gap-2 ${checkoutStep === 'payment' ? 'text-barby-gold' : 'text-barby-cream/40'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${checkoutStep === 'payment' ? 'border-barby-gold bg-barby-gold/20' : checkoutStep === 'confirmation' ? 'border-green-500 bg-green-500/20' : 'border-barby-cream/40'}`}>
-                        {checkoutStep === 'confirmation' ? <FiCheck className="text-green-500" /> : '2'}
-                    </div>
-                    <span className="hidden sm:inline">תשלום</span>
-                </div>
-                <div className="w-8 h-0.5 bg-barby-gold/30" />
                 <div className={`flex items-center gap-2 ${checkoutStep === 'confirmation' ? 'text-barby-gold' : 'text-barby-cream/40'}`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${checkoutStep === 'confirmation' ? 'border-green-500 bg-green-500/20' : 'border-barby-cream/40'}`}>
-                        {checkoutStep === 'confirmation' ? <FiCheck className="text-green-500" /> : '3'}
+                        {checkoutStep === 'confirmation' ? <FiCheck className="text-green-500" /> : '2'}
                     </div>
                     <span className="hidden sm:inline">אישור</span>
                 </div>
             </div>
+
 
             <div className="grid lg:grid-cols-3 gap-8">
                 {/* Order Summary - Right Side */}
@@ -338,63 +308,11 @@ export function ShowDetailPage() {
                                 />
                             </div>
                             <div className="flex gap-3 pt-4">
-                                <Button variant="ghost" onClick={handleBackToTickets}>
+                                <Button variant="ghost" onClick={handleBackToTickets} disabled={isSubmitting}>
                                     <FiArrowRight className="ml-2" /> חזרה
                                 </Button>
-                                <Button onClick={handleContinueToPayment} className="flex-1">
-                                    המשך לתשלום
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-
-                    {checkoutStep === 'payment' && (
-                        <div className="space-y-6">
-                            <h2 className="text-xl font-bold text-barby-gold flex items-center gap-2">
-                                <FiCreditCard /> פרטי תשלום
-                            </h2>
-                            <Input
-                                label="מספר כרטיס"
-                                placeholder="1234 5678 9012 3456"
-                                value={formData.cardNumber}
-                                onChange={(e) => setFormData({ ...formData, cardNumber: handleCardNumberInput(e.target.value) })}
-                                error={formErrors.cardNumber}
-                                inputMode="numeric"
-                                maxLength={23}
-                            />
-                            <Input
-                                label="שם בעל הכרטיס"
-                                placeholder="שם כפי שמופיע על הכרטיס"
-                                value={formData.cardHolder}
-                                onChange={(e) => setFormData({ ...formData, cardHolder: e.target.value })}
-                                error={formErrors.cardHolder}
-                            />
-                            <div className="grid sm:grid-cols-2 gap-4">
-                                <Input
-                                    label="תוקף"
-                                    placeholder="MM/YY"
-                                    value={formData.cardExpiry}
-                                    onChange={(e) => setFormData({ ...formData, cardExpiry: handleExpiryInput(e.target.value) })}
-                                    error={formErrors.cardExpiry}
-                                    inputMode="numeric"
-                                    maxLength={5}
-                                />
-                                <Input
-                                    label="CVV"
-                                    placeholder="123"
-                                    maxLength={4}
-                                    value={formData.cardCvv}
-                                    onChange={(e) => setFormData({ ...formData, cardCvv: handleCvvInput(e.target.value, formData.cardNumber) })}
-                                    error={formErrors.cardCvv}
-                                    inputMode="numeric"
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-4">
-                                <Button variant="ghost" onClick={() => setCheckoutStep('details')} disabled={isSubmitting}>
-                                    <FiArrowRight className="ml-2" /> חזרה
-                                </Button>
-                                <Button onClick={handleSubmitPayment} className="flex-1" disabled={isSubmitting}>
-                                    {isSubmitting ? 'מעבד תשלום...' : `שלם ${formatPrice(total)}`}
+                                <Button onClick={handleContinueToPayment} className="flex-1" disabled={isSubmitting}>
+                                    {isSubmitting ? 'שומר הזמנה...' : `הזמן כרטיסים - ${formatPrice(total)}`}
                                 </Button>
                             </div>
                             {formErrors.submit && (
@@ -432,7 +350,7 @@ export function ShowDetailPage() {
                                 </div>
                             </div>
                             <div className="flex gap-3 justify-center mt-6">
-                                <Button variant="ghost" onClick={() => navigate('/profile')}>
+                                <Button variant="ghost" onClick={() => navigate('/account')}>
                                     לאזור האישי
                                 </Button>
                                 <Button onClick={() => navigate('/')}>
@@ -478,18 +396,17 @@ export function ShowDetailPage() {
                     <div className="bg-barby-burgundy/40 border-2 border-barby-gold/50 rounded-lg overflow-hidden">
                         <div className="flex flex-col lg:flex-row">
                             {/* Show Image */}
-                            <div className="lg:w-2/5 aspect-[4/3] lg:aspect-square overflow-hidden">
-                                {imageUrl ? (
-                                    <img
-                                        src={imageUrl}
-                                        alt={show.title}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center">
-                                        <Chandelier size="lg" />
-                                    </div>
-                                )}
+                            <div className="lg:w-2/5 overflow-hidden bg-barby-darker/50">
+                                <MediaImage
+                                    mediaId={show.imageMediaId}
+                                    alt={show.title}
+                                    className="w-full h-auto max-h-[50vh] lg:max-h-none lg:h-full object-contain lg:object-cover"
+                                    fallback={
+                                        <div className="w-full h-full min-h-[200px] bg-barby-darker/50 flex items-center justify-center">
+                                            <Chandelier size="lg" />
+                                        </div>
+                                    }
+                                />
                             </div>
 
                             {/* Show Info */}
@@ -517,7 +434,7 @@ export function ShowDetailPage() {
                                     {show.description && (
                                         <div
                                             className="text-barby-cream/90 leading-relaxed mb-6 whitespace-pre-line"
-                                            dangerouslySetInnerHTML={{ __html: show.description }}
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(show.description) }}
                                         />
                                     )}
                                 </div>
@@ -546,7 +463,7 @@ export function ShowDetailPage() {
                                                             newQuantities[index] = Number(e.target.value)
                                                             setQuantities(newQuantities)
                                                         }}
-                                                        disabled={isSoldOut}
+                                                        disabled={isSoldOut || isCancelled}
                                                     >
                                                         {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                                                             <option key={num} value={num}>{num}</option>
@@ -563,7 +480,11 @@ export function ShowDetailPage() {
                                         </div>
 
                                         {/* Buy Button */}
-                                        {!isSoldOut ? (
+                                        {isCancelled ? (
+                                            <div className="text-center py-4 bg-gray-600/20 rounded-lg text-gray-400 font-medium">
+                                                ההופעה בוטלה
+                                            </div>
+                                        ) : !isSoldOut ? (
                                             <Button
                                                 size="lg"
                                                 className={`w-full text-lg py-4 ${!hasSelectedTickets ? 'cursor-default opacity-50' : ''}`}

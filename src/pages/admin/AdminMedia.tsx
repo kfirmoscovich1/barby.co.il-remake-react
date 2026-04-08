@@ -3,8 +3,51 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
 import { Button, Modal, Skeleton } from '@/components/common'
+import { MediaImage } from '@/components/common/MediaImage'
+import { useMediaUrl } from '@/hooks/useMediaUrl'
 import toast from 'react-hot-toast'
 import type { Media } from '@/types'
+
+function MediaGridItem({ item, formatFileSize, onDelete }: { item: Media; formatFileSize: (bytes: number) => string; onDelete: (item: Media) => void }) {
+    const { url } = useMediaUrl(item.id)
+
+    return (
+        <div className="card-vintage p-2 group">
+            <div className="aspect-square bg-barby-dark overflow-hidden">
+                <MediaImage
+                    mediaId={item.id}
+                    alt={item.originalName}
+                    variant="thumbnail"
+                    className="w-full h-full object-cover"
+                />
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                    <p className="text-xs text-barby-cream truncate">{item.originalName}</p>
+                    <p className="text-xs text-barby-cream/50">{formatFileSize(item.sizeBytes)}</p>
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={() => { if (url) window.open(url, '_blank') }}
+                        className="p-1 text-barby-cream/60 hover:text-barby-gold transition-colors"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={() => onDelete(item)}
+                        className="p-1 text-barby-cream/60 hover:text-barby-red transition-colors"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export function AdminMedia() {
     const queryClient = useQueryClient()
@@ -95,41 +138,12 @@ export function AdminMedia() {
                     </div>
                 ) : (
                     mediaItems.map((item) => (
-                        <div key={item.id} className="card-vintage p-2 group">
-                            <div className="aspect-square bg-barby-dark overflow-hidden">
-                                <img
-                                    src={`/api/media/${item.id}/thumbnail`}
-                                    alt={item.originalName}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <div className="mt-2 flex items-center justify-between">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs text-barby-cream truncate">{item.originalName}</p>
-                                    <p className="text-xs text-barby-cream/50">{formatFileSize(item.sizeBytes)}</p>
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a
-                                        href={`/api/media/${item.id}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-1 text-barby-cream/60 hover:text-barby-gold transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                    </a>
-                                    <button
-                                        onClick={() => setDeleteModal(item)}
-                                        className="p-1 text-barby-cream/60 hover:text-barby-red transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <MediaGridItem
+                            key={item.id}
+                            item={item}
+                            formatFileSize={formatFileSize}
+                            onDelete={setDeleteModal}
+                        />
                     ))
                 )}
             </div>

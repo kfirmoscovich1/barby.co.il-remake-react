@@ -1,8 +1,33 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/utils'
 import { useAuth } from '@/context/AuthContext'
+import { publicApi } from '@/services/api'
+import { queryKeys } from '@/services/queryClient'
 import { MobileMenu } from './MobileMenu'
+import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube, FaTiktok, FaSpotify, FaWhatsapp } from 'react-icons/fa'
+import type { IconType } from 'react-icons'
+
+const SOCIAL_ICONS: Record<string, IconType> = {
+    facebook: FaFacebookF,
+    instagram: FaInstagram,
+    twitter: FaTwitter,
+    youtube: FaYoutube,
+    tiktok: FaTiktok,
+    spotify: FaSpotify,
+    whatsapp: FaWhatsapp,
+}
+
+const SOCIAL_LABELS: Record<string, string> = {
+    facebook: 'עמוד הפייסבוק שלנו',
+    instagram: 'עמוד האינסטגרם שלנו',
+    twitter: 'עמוד הטוויטר שלנו',
+    youtube: 'ערוץ היוטיוב שלנו',
+    tiktok: 'עמוד הטיקטוק שלנו',
+    spotify: 'ספוטיפיי שלנו',
+    whatsapp: 'וואטסאפ שלנו',
+}
 
 const navLinks = [
     { to: '/', label: 'עמוד הבית' },
@@ -16,37 +41,37 @@ export function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const { isAuthenticated, isEditor, logout } = useAuth()
 
+    const { data: settingsData } = useQuery({
+        queryKey: queryKeys.settings.public,
+        queryFn: publicApi.getSettings,
+    })
+    const socialLinks = settingsData?.settings?.footer?.socialLinks || []
+
     return (
         <header className="sticky top-0 z-50" role="banner">
             {/* Top bar with social/contact */}
             <div className="bg-barby-darker/80 backdrop-blur-sm border-b border-barby-gold/20">
                 <div className="container mx-auto px-4 py-2 flex justify-between items-center text-sm">
                     <div className="flex items-center gap-4" role="group" aria-label="קישורים לרשתות חברתיות">
-                        <a
-                            href="https://facebook.com/barbytlv"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-barby-cream/60 hover:text-barby-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barby-gold focus-visible:ring-offset-1 focus-visible:ring-offset-barby-dark rounded"
-                            aria-label="עמוד הפייסבוק שלנו (נפתח בחלון חדש)"
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M18.77 7.46H14.5v-1.9c0-.9.6-1.1 1-1.1h3V.5h-4.33C10.24.5 9.5 3.44 9.5 5.32v2.15h-3v4h3v12h5v-12h3.85l.42-4z" />
-                            </svg>
-                        </a>
-                        <a
-                            href="https://instagram.com/barbytlv"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-barby-cream/60 hover:text-barby-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barby-gold focus-visible:ring-offset-1 focus-visible:ring-offset-barby-dark rounded"
-                            aria-label="עמוד האינסטגרם שלנו (נפתח בחלון חדש)"
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                            </svg>
-                        </a>
+                        {socialLinks.map((link, index) => {
+                            const Icon = SOCIAL_ICONS[link.platform]
+                            if (!Icon) return null
+                            return (
+                                <a
+                                    key={index}
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-barby-cream/60 hover:text-barby-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barby-gold focus-visible:ring-offset-1 focus-visible:ring-offset-barby-dark rounded"
+                                    aria-label={`${SOCIAL_LABELS[link.platform] || link.platform} (נפתח בחלון חדש)`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                </a>
+                            )
+                        })}
                     </div>
                     <div className="text-barby-cream/60">
-                        <span>הנמל 1 - נמל יפו</span>
+                        <span>נמל יפו 1, יפו</span>
                         <span className="mx-2" aria-hidden="true">|</span>
                         <a
                             href="tel:03-5188123"

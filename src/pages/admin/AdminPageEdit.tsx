@@ -100,18 +100,14 @@ export function AdminPageEdit() {
             let pdfMediaId: string | null | undefined = existingPdfId
 
             if (pdfFile) {
-                // Upload PDF first
                 const uploadResult = await adminApi.uploadMedia(pdfFile)
-                console.log('Upload result:', uploadResult)
                 pdfMediaId = uploadResult.media?.id || null
             }
-
-            console.log('Sending pdfMediaId:', pdfMediaId)
 
             return adminApi.updatePage(id!, {
                 title: formData.title,
                 contentRichText: formData.contentRichText,
-                pdfMediaId: pdfMediaId ?? undefined,
+                ...(pdfMediaId != null ? { pdfMediaId } : pdfFile === null && existingPdfId === null && pdfFileName === null ? { pdfMediaId: '' } : {}),
             })
         },
         onSuccess: () => {

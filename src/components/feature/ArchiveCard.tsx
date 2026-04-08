@@ -3,7 +3,13 @@ import { BsPersonStanding } from 'react-icons/bs'
 import { GiWoodenChair } from 'react-icons/gi'
 import { TbRotate360 } from 'react-icons/tb'
 import { Chandelier } from './Chandelier'
-import { getImageUrl } from '@/utils'
+import { MediaImage } from '@/components/common'
+
+// Strip HTML tags from rich text for plain text display
+function stripHtml(html: string): string {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    return doc.body.textContent || ''
+}
 
 // Format date in Hebrew - full format
 function formatShowDate(dateISO: string): { day: string; date: string } {
@@ -20,24 +26,23 @@ interface ArchiveCardProps {
 }
 
 export function ArchiveCard({ show }: ArchiveCardProps) {
-    const imageUrl = show.imageMediaId ? getImageUrl(show.imageMediaId) : null
     const { day, date } = formatShowDate(show.dateISO)
 
     return (
         <div className="block bg-barby-darker/40 border border-barby-gold/20 rounded-lg overflow-hidden cursor-default">
             {/* Show Image */}
             <div className="aspect-square overflow-hidden relative">
-                {imageUrl ? (
-                    <img
-                        src={imageUrl}
-                        alt={show.title}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center">
-                        <Chandelier size="md" animate={false} />
-                    </div>
-                )}
+                <MediaImage
+                    mediaId={show.imageMediaId}
+                    alt={show.title}
+                    variant="thumbnail"
+                    className="w-full h-full object-cover"
+                    fallback={
+                        <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center">
+                            <Chandelier size="md" animate={false} />
+                        </div>
+                    }
+                />
 
                 {/* Archive badge */}
                 <div className="absolute top-2 right-2 bg-barby-dark text-barby-cream/70 px-2 py-1 text-xs font-bold rounded">
@@ -74,7 +79,7 @@ export function ArchiveCard({ show }: ArchiveCardProps) {
                 {/* Show Name/Description */}
                 {show.description && (
                     <p className="text-barby-cream/70 text-xs truncate">
-                        {show.description}
+                        {stripHtml(show.description)}
                     </p>
                 )}
 

@@ -2,14 +2,14 @@ import { publicApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
 import { useInfiniteScroll } from '@/hooks'
 import { Chandelier, ArchiveCard } from '@/components/feature'
-import { NoArchiveContentMessage, LoadingError } from '@/components/common'
+import { NoArchiveContentMessage, LoadingError, ShowGridSkeleton } from '@/components/common'
 
 export function ArchivePage() {
     const limit = 18
 
     const { items: archivedShows, isLoading, isFetchingNextPage, hasNextPage, loadMoreRef, error } = useInfiniteScroll({
         queryKey: queryKeys.archive.list({ limit }),
-        queryFn: (page) => publicApi.getArchive({ page, limit }),
+        queryFn: (cursor) => publicApi.getArchive({ cursor, limit }),
         limit,
     })
 
@@ -38,11 +38,7 @@ export function ArchivePage() {
 
                 {/* Shows Grid */}
                 {isLoading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {Array.from({ length: 12 }).map((_, i) => (
-                            <div key={i} className="aspect-square bg-barby-darker/50 animate-pulse rounded-lg" />
-                        ))}
-                    </div>
+                    <ShowGridSkeleton count={12} />
                 ) : archivedShows.length === 0 ? (
                     <NoArchiveContentMessage />
                 ) : (

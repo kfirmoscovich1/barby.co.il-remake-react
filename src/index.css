@@ -23,11 +23,13 @@
   html {
     font-family: 'Alef', sans-serif;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 
   body {
     @apply text-barby-cream antialiased;
     min-height: 100vh;
+    overflow-x: hidden;
     background-image: url('/bg.webp');
     background-size: cover;
     background-position: center;

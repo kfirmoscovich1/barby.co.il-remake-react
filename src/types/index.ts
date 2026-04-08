@@ -13,13 +13,12 @@
 // ==========================================
 // User Types
 // ==========================================
-export type UserRole = 'admin' | 'editor';
+export type UserRole = 'admin' | 'editor' | 'viewer';
 
 export interface User {
     id: string;
     name: string;
     email: string;
-    passwordHash: string;
     role: UserRole;
     isActive: boolean;
     createdAt: Date;
@@ -37,7 +36,7 @@ export interface UserPublic {
 // ==========================================
 // Show Types
 // ==========================================
-export type ShowStatus = 'available' | 'sold_out' | 'closed' | 'few_left';
+export type ShowStatus = 'available' | 'sold_out' | 'closed' | 'few_left' | 'cancelled';
 
 export interface TicketTier {
     label: string;
@@ -260,6 +259,7 @@ export interface PaginatedResponse<T> {
     page: number;
     limit: number;
     totalPages: number;
+    lastDocId?: string;
     pagination?: {
         total: number;
         page: number;

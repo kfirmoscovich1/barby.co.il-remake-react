@@ -11,7 +11,6 @@ interface EmptyContentProps {
 export function EmptyContent({ title, message }: EmptyContentProps) {
     return (
         <div className="text-center py-12">
-            <Chandelier size="md" className="mx-auto mb-6" />
             <h2 className="text-xl font-bold text-barby-gold mb-2">{title}</h2>
             <p className="text-barby-cream/60">{message}</p>
         </div>
@@ -147,23 +146,13 @@ export function EmptyState({
 // Pre-configured empty states for common scenarios
 export function NoShowsMessage() {
     return (
-        <EmptyState
-            title="אין הופעות כרגע"
-            message="עדיין לא פורסמו הופעות חדשות. חזרו אלינו בקרוב!"
-            icon="music"
-            showHomeButton={false}
-        />
+        <NoShowsContentMessage />
     )
 }
 
 export function NoArchiveMessage() {
     return (
-        <EmptyState
-            title="אין הופעות בארכיון"
-            message="עדיין לא נוספו הופעות לארכיון"
-            icon="music"
-            showHomeButton={true}
-        />
+        <NoArchiveContentMessage />
     )
 }
 

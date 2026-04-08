@@ -10,55 +10,31 @@
  * Authentication:
  * - ProtectedRoute: Redirects to login if not authenticated
  * - EditorRoute: Redirects to home if not an editor/admin
- * 
- * Performance:
- * - Lazy loading for non-critical pages to reduce initial bundle size
- * - HomePage is loaded eagerly for fast first paint
  */
 
-import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
 
-// Loading component for lazy-loaded pages
-function PageLoader() {
-    return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-barby-gold"></div>
-        </div>
-    )
-}
-
-// Lazy wrapper helper
-function LazyPage({ component: Component }: { component: React.ComponentType }) {
-    return (
-        <Suspense fallback={<PageLoader />}>
-            <Component />
-        </Suspense>
-    )
-}
-
-// Layout components - loaded eagerly (needed for all routes)
+// Layout components
 import { AppShell } from '@/components/layout/AppShell'
 import { AdminShell } from '@/components/layout/AdminShell'
 
-// HomePage loaded eagerly for fast first paint
+// Public pages (eagerly loaded for fast initial navigation)
 import { HomePage } from '@/pages/HomePage'
+import { ShowDetailPage } from '@/pages/ShowDetailPage'
+import { ArchivePage } from '@/pages/ArchivePage'
+import { PageContent } from '@/pages/PageContent'
+import { LoginPage } from '@/pages/LoginPage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { RegisterPage } from '@/pages/RegisterPage'
+import { UserProfilePage } from '@/pages/UserProfilePage'
+import { GiftCardPage } from '@/pages/GiftCardPage'
+import { UnsubscribePage } from '@/pages/UnsubscribePage'
+import { FAQPage } from '@/pages/FAQPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 
-// Lazy-loaded public pages
-const ShowDetailPage = lazy(() => import('@/pages/ShowDetailPage').then(m => ({ default: m.ShowDetailPage })))
-const ArchivePage = lazy(() => import('@/pages/ArchivePage').then(m => ({ default: m.ArchivePage })))
-const PageContent = lazy(() => import('@/pages/PageContent').then(m => ({ default: m.PageContent })))
-const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.LoginPage })))
-const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })))
-const RegisterPage = lazy(() => import('@/pages/RegisterPage').then(m => ({ default: m.RegisterPage })))
-const UserProfilePage = lazy(() => import('@/pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })))
-const GiftCardPage = lazy(() => import('@/pages/GiftCardPage').then(m => ({ default: m.GiftCardPage })))
-const UnsubscribePage = lazy(() => import('@/pages/UnsubscribePage').then(m => ({ default: m.UnsubscribePage })))
-const FAQPage = lazy(() => import('@/pages/FAQPage').then(m => ({ default: m.FAQPage })))
-const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
-
-// Lazy-loaded admin pages
+// Admin pages (lazy loaded – only fetched when admin navigates to these routes)
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
 const AdminShows = lazy(() => import('@/pages/admin/AdminShows').then(m => ({ default: m.AdminShows })))
 const AdminShowEdit = lazy(() => import('@/pages/admin/AdminShowEdit').then(m => ({ default: m.AdminShowEdit })))
@@ -70,9 +46,21 @@ const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers').then(m => ({ de
 const AdminAuditLog = lazy(() => import('@/pages/admin/AdminAuditLog').then(m => ({ default: m.AdminAuditLog })))
 const AdminFAQ = lazy(() => import('@/pages/admin/AdminFAQ').then(m => ({ default: m.AdminFAQ })))
 
+function LazyFallback() {
+    return <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="w-8 h-8 border-2 border-barby-gold border-t-transparent rounded-full animate-spin" />
+    </div>
+}
+
+function SuspenseAdmin() {
+    return <Suspense fallback={<LazyFallback />}><Outlet /></Suspense>
+}
+
 // Protected route wrapper
 function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolean }) {
-    const { isAuthenticated, isAdmin, isEditor } = useAuth()
+    const { isAuthenticated, isAdmin, isEditor, isLoading } = useAuth()
+
+    if (isLoading) return <LazyFallback />
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />
@@ -91,7 +79,9 @@ function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolean }) {
 
 // Guest route wrapper (for login page)
 function GuestRoute() {
-    const { isAuthenticated, isEditor } = useAuth()
+    const { isAuthenticated, isEditor, isLoading } = useAuth()
+
+    if (isLoading) return <LazyFallback />
 
     if (isAuthenticated && isEditor) {
         return <Navigate to="/admin" replace />
@@ -102,7 +92,9 @@ function GuestRoute() {
 
 // User authenticated route wrapper
 function UserAuthRoute() {
-    const { isAuthenticated } = useAuth()
+    const { isAuthenticated, isLoading } = useAuth()
+
+    if (isLoading) return <LazyFallback />
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />
@@ -116,34 +108,34 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
             { path: '/', element: <HomePage /> },
-            { path: '/show/:slug', element: <LazyPage component={ShowDetailPage} /> },
-            { path: '/archive', element: <LazyPage component={ArchivePage} /> },
+            { path: '/show/:slug', element: <ShowDetailPage /> },
+            { path: '/archive', element: <ArchivePage /> },
             // Dynamic pages from MongoDB
-            { path: '/contact', element: <LazyPage component={PageContent} /> },
-            { path: '/about', element: <LazyPage component={PageContent} /> },
-            { path: '/terms', element: <LazyPage component={PageContent} /> },
-            { path: '/accessibility', element: <LazyPage component={PageContent} /> },
-            { path: '/privacy', element: <LazyPage component={PageContent} /> },
+            { path: '/contact', element: <PageContent /> },
+            { path: '/about', element: <PageContent /> },
+            { path: '/terms', element: <PageContent /> },
+            { path: '/accessibility', element: <PageContent /> },
+            { path: '/privacy', element: <PageContent /> },
             // Special pages with forms/logic
-            { path: '/unsubscribe', element: <LazyPage component={UnsubscribePage} /> },
-            { path: '/faq', element: <LazyPage component={FAQPage} /> },
-            { path: '/page/:slug', element: <LazyPage component={PageContent} /> },
-            { path: '/giftcard', element: <LazyPage component={GiftCardPage} /> },
-            { path: '*', element: <LazyPage component={NotFoundPage} /> },
+            { path: '/unsubscribe', element: <UnsubscribePage /> },
+            { path: '/faq', element: <FAQPage /> },
+            { path: '/page/:slug', element: <PageContent /> },
+            { path: '/giftcard', element: <GiftCardPage /> },
+            { path: '*', element: <NotFoundPage /> },
         ],
     },
     {
         element: <UserAuthRoute />,
         children: [
-            { path: '/account', element: <LazyPage component={UserProfilePage} /> },
+            { path: '/account', element: <UserProfilePage /> },
         ],
     },
     {
         element: <GuestRoute />,
         children: [
-            { path: '/login', element: <LazyPage component={LoginPage} /> },
-            { path: '/forgot-password', element: <LazyPage component={ForgotPasswordPage} /> },
-            { path: '/register', element: <LazyPage component={RegisterPage} /> },
+            { path: '/login', element: <LoginPage /> },
+            { path: '/forgot-password', element: <ForgotPasswordPage /> },
+            { path: '/register', element: <RegisterPage /> },
         ],
     },
     {
@@ -152,21 +144,26 @@ export const router = createBrowserRouter([
             {
                 element: <AdminShell />,
                 children: [
-                    { path: '/admin', element: <LazyPage component={AdminDashboard} /> },
-                    { path: '/admin/shows', element: <LazyPage component={AdminShows} /> },
-                    { path: '/admin/shows/new', element: <LazyPage component={AdminShowEdit} /> },
-                    { path: '/admin/shows/:id', element: <LazyPage component={AdminShowEdit} /> },
-                    { path: '/admin/pages', element: <LazyPage component={AdminPages} /> },
-                    { path: '/admin/pages/new', element: <LazyPage component={AdminPageEdit} /> },
-                    { path: '/admin/pages/:id', element: <LazyPage component={AdminPageEdit} /> },
-                    { path: '/admin/faq', element: <LazyPage component={AdminFAQ} /> },
-                    { path: '/admin/settings', element: <LazyPage component={AdminSettings} /> },
-                    { path: '/admin/media', element: <LazyPage component={AdminMedia} /> },
                     {
-                        element: <ProtectedRoute requireAdmin />,
+                        element: <SuspenseAdmin />,
                         children: [
-                            { path: '/admin/users', element: <LazyPage component={AdminUsers} /> },
-                            { path: '/admin/audit', element: <LazyPage component={AdminAuditLog} /> },
+                            { path: '/admin', element: <AdminDashboard /> },
+                            { path: '/admin/shows', element: <AdminShows /> },
+                            { path: '/admin/shows/new', element: <AdminShowEdit /> },
+                            { path: '/admin/shows/:id', element: <AdminShowEdit /> },
+                            { path: '/admin/pages', element: <AdminPages /> },
+                            { path: '/admin/pages/new', element: <AdminPageEdit /> },
+                            { path: '/admin/pages/:id', element: <AdminPageEdit /> },
+                            { path: '/admin/faq', element: <AdminFAQ /> },
+                            { path: '/admin/settings', element: <AdminSettings /> },
+                            { path: '/admin/media', element: <AdminMedia /> },
+                            {
+                                element: <ProtectedRoute requireAdmin />,
+                                children: [
+                                    { path: '/admin/users', element: <AdminUsers /> },
+                                    { path: '/admin/audit', element: <AdminAuditLog /> },
+                                ],
+                            },
                         ],
                     },
                 ],

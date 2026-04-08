@@ -5,7 +5,7 @@ import { ScrollToTop, ScrollToTopButton } from '@/components/common'
 
 export function AppShell() {
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col overflow-x-hidden">
             <ScrollToTop />
             {/* Chandelier glow effect at top */}
             <div className="fixed inset-x-0 top-0 h-96 chandelier-glow pointer-events-none z-0" aria-hidden="true" />

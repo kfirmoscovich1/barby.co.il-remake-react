@@ -191,7 +191,7 @@ export const updateUserSchema = z.object({
 // Show Schemas
 // ==========================================
 
-export const showStatusSchema = z.enum(['available', 'sold_out', 'closed', 'few_left']);
+export const showStatusSchema = z.enum(['available', 'sold_out', 'closed', 'few_left', 'cancelled']);
 
 export const ticketTierSchema = z.object({
     label: z.string().min(1, 'שם הכרטיס חסר').optional(),
@@ -208,14 +208,19 @@ export const ticketTierSchema = z.object({
 }));
 
 export const mediaIdSchema = z.string().refine(
-    (val) => /^[a-fA-F0-9]{24}$/.test(val) || val.startsWith('http://') || val.startsWith('https://') || val === '',
+    (val) => val.length > 0,
     'מזהה מדיה לא תקין'
 );
 
 export const createShowSchema = z.object({
     title: z.string().min(1, 'כותרת חסרה'),
     slug: z.string().optional(),
-    dateISO: z.string().datetime('תאריך לא תקין'),
+    dateISO: z.string().min(1, 'תאריך חסר').transform(v => {
+        if (v && !v.includes('Z') && !v.includes('+')) {
+            return new Date(v).toISOString()
+        }
+        return v
+    }),
     doorsTime: z.string().optional(),
     description: z.string().min(1, 'תיאור חסר'),
     imageMediaId: mediaIdSchema.optional(),

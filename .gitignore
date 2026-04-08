@@ -16,12 +16,11 @@ dist-ssr
 build
 *.local
 
-# Environment files (keep .env.example)
+# Environment files
 .env
 .env.local
 .env.production
 .env.development
-backend/.env
 
 # Editor directories and files
 .vscode/*
@@ -43,10 +42,6 @@ Thumbs.db
 
 # Test coverage
 coverage
-
-# Uploads (user content)
-backend/uploads/*
-!backend/uploads/.gitkeep
 
 # MongoDB data (if local)
 data/

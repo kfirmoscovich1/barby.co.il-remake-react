@@ -18,11 +18,6 @@ const SOCIAL_ICONS: Record<string, IconType> = {
     whatsapp: FaWhatsapp,
 }
 
-const DEFAULT_SOCIAL_LINKS = [
-    { platform: 'facebook', url: 'https://facebook.com/barbytlv' },
-    { platform: 'instagram', url: 'https://instagram.com/barbytlv' },
-]
-
 export function Footer() {
     const [showNavigationPopup, setShowNavigationPopup] = useState(false)
 
@@ -126,7 +121,7 @@ export function Footer() {
                                 className="flex items-center gap-1 hover:text-barby-gold transition-colors cursor-pointer underline-offset-2 hover:underline"
                                 aria-label="פתח אפשרויות ניווט לכתובת"
                             >
-                                <span>{footer?.address || 'הנמל 1, נמל יפו, תל אביב'}</span>
+                                <span>{footer?.address || 'נמל יפו 1, יפו'}</span>
                             </button>
                             <a href={`tel:${footer?.phone || '03-5188123'}`} className="hover:text-barby-gold transition-colors">
                                 {footer?.phone || '03-5188123'}
@@ -185,7 +180,7 @@ export function Footer() {
 
                         {/* Social links */}
                         <div className="flex gap-2">
-                            {(footer?.socialLinks?.length ? footer.socialLinks : DEFAULT_SOCIAL_LINKS).map((link, index) => {
+                            {(footer?.socialLinks || []).map((link, index) => {
                                 const Icon = SOCIAL_ICONS[link.platform]
                                 if (!Icon) return null
                                 return (

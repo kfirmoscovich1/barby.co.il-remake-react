@@ -4,34 +4,18 @@ A modern remake of the official Barby Music Club website (barby.co.il) - Israel'
 
 This project is an educational/demonstration remake built with modern technologies and improved architecture. It is not officially affiliated with Barby Music Club.
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Performance](#performance)
-- [Installation](#installation)
-- [Running the Project](#running-the-project)
-- [Project Structure](#project-structure)
-- [Production Deployment](#production-deployment)
-- [Security](#security)
-- [Accessibility](#accessibility)
-- [License](#license)
-
 ## Overview
 
-This full-stack application includes:
-
-- Shows calendar with infinite scroll pagination
-- Ticket status management (available, few left, sold out)
+- Shows calendar with infinite scroll (cursor-based pagination)
+- Ticket status management (available, few left, sold out, cancelled)
 - Secure admin dashboard for content management
+- Gift card system
+- Order management
 - Responsive design for all devices
 - Full accessibility support (WCAG 2.1)
-- SEO optimization with structured data
 - RTL (Right-to-Left) Hebrew language support
 
 ## Tech Stack
-
-### Frontend
 
 | Technology | Purpose |
 |------------|---------|
@@ -39,75 +23,20 @@ This full-stack application includes:
 | TypeScript | Type safety |
 | Vite | Build tool and dev server |
 | Tailwind CSS | Utility-first styling |
+| Firebase Auth | Authentication (email/password) |
+| Firebase Firestore | NoSQL database |
 | React Query | Server state management and caching |
 | React Router v6 | Client-side routing |
 | React Hook Form | Form handling |
 | Zod | Schema validation |
-
-### Backend
-
-| Technology | Purpose |
-|------------|---------|
-| Express.js | REST API framework |
-| TypeScript | Type safety |
-| MongoDB | NoSQL database |
-| Mongoose | MongoDB ODM |
-| JWT | Authentication |
-| Multer + Sharp | Image upload and processing |
-| Helmet | Security headers |
-| express-rate-limit | Rate limiting |
-
-### Validation
-
-| Technology | Purpose |
-|------------|---------|
-| Zod | Schema validation (frontend & backend) |
-| TypeScript | Shared type definitions |
-
-## Performance
-
-This application is optimized for fast load times and minimal latency, especially on free-tier hosting platforms.
-
-### Backend Optimizations
-
-| Optimization | Description |
-|--------------|-------------|
-| **MongoDB Connection Pooling** | Single global connection with pool size of 10, preventing reconnection overhead |
-| **Request Timing Middleware** | Logs all request durations with cold-start detection |
-| **In-Memory Caching** | 60-second cache for frequently accessed data (shows, settings) |
-| **HTTP Cache Headers** | `Cache-Control` with `stale-while-revalidate` for CDN/browser caching |
-| **Compound Indexes** | Optimized MongoDB indexes for all common query patterns |
-| **Field Projection** | Only fetches required fields from database |
-| **gzip Compression** | Responses compressed at optimal level 6 |
-| **Health Endpoints** | `/ping` (no DB) and `/health` (with DB status) for monitoring |
-
-### Frontend Optimizations
-
-| Optimization | Description |
-|--------------|-------------|
-| **React Query Caching** | 15-minute stale time, 1-hour garbage collection |
-| **Parallel Prefetching** | Critical data loaded in parallel on app start |
-| **Keep-Alive Service** | Pings server every 8 minutes to prevent cold starts |
-| **Visibility Ping** | Immediate server ping when user returns to tab |
-| **Skeleton Loading** | UI renders immediately with loading placeholders |
-| **Code Splitting** | Vite automatically splits chunks for optimal loading |
-
-### Cold Start Mitigation
-
-On free-tier hosting (Render), servers spin down after 15 minutes of inactivity. This project implements:
-
-1. **Frontend keep-alive**: Pings `/ping` endpoint every 8 minutes
-2. **Lightweight ping endpoint**: Returns instantly without DB queries
-3. **Connection pooling**: Maintains warm database connections
-4. **Parallel initialization**: DB connection and server start run concurrently
+| DOMPurify | XSS protection |
 
 ## Installation
 
 ### Prerequisites
 
 - Node.js 18 or higher
-- MongoDB 6 or higher
-- npm or yarn
+- A Firebase project with Firestore and Authentication enabled
 
 ### Setup Steps
 
@@ -116,199 +45,82 @@ On free-tier hosting (Render), servers spin down after 15 minutes of inactivity.
 git clone https://github.com/your-username/barby.co.il.git
 cd barby.co.il
 
-# Install frontend dependencies
+# Install dependencies
 npm install
 
-# Install backend dependencies
-cd backend && npm install && cd ..
-
-# Copy environment files
+# Create environment file
 cp .env.example .env
-cp backend/.env.example backend/.env
+# Edit .env with your Firebase config
 ```
 
-### Environment Variables
-
-#### Frontend (.env)
+### Environment Variables (.env)
 
 ```env
-VITE_API_URL=http://localhost:3001/api
-```
-
-#### Backend (backend/.env)
-
-```env
-PORT=3001
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/barby
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
-CORS_ORIGIN=http://localhost:5173
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 ```
 
 ## Running the Project
 
-### Development Mode
-
 ```bash
-# Terminal 1 - Start backend
-cd backend && npm run dev
-
-# Terminal 2 - Start frontend
+# Start development server
 npm run dev
 ```
 
-### Using Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-The application will be available at:
-
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:3001 |
-| MongoDB | localhost:27017 |
-
-### Database Seeding
-
-```bash
-cd backend && npm run seed
-```
-
-This creates an initial admin user with credentials defined in your .env file.
+The app will be available at http://localhost:5173
 
 ## Project Structure
 
 ```
 barby.co.il/
-├── src/                          # Frontend (React)
+├── src/
 │   ├── components/
 │   │   ├── common/               # Reusable components (Button, Input, Modal)
-│   │   ├── feature/              # Feature components (ShowCard, ShowGrid)
+│   │   ├── feature/              # Feature components (ShowCard, Chandelier)
 │   │   └── layout/               # Layout components (Header, Footer)
 │   ├── pages/                    # Page components
-│   │   └── admin/                # Admin dashboard pages
-│   ├── context/                  # React Context providers
-│   ├── hooks/                    # Custom hooks
-│   ├── services/                 # API services and React Query
+│   │   └── admin/                # Admin dashboard pages (lazy loaded)
+│   ├── context/                  # Auth context (Firebase)
+│   ├── hooks/                    # Custom hooks (useInfiniteScroll)
+│   ├── lib/                      # Firebase config, validation schemas
+│   ├── services/                 # Firestore API layer, React Query
 │   ├── types/                    # TypeScript type definitions
-│   ├── lib/validation/           # Validation schemas and utilities
 │   └── utils/                    # Utility functions
-│
-├── backend/                      # Backend (Express)
-│   └── src/
-│       ├── config/               # Configuration (database, environment)
-│       ├── middleware/           # Express middleware
-│       ├── models/               # Mongoose models
-│       ├── routes/               # API route handlers
-│       ├── services/             # Business logic
-│       ├── types/                # TypeScript type definitions
-│       ├── validation/           # Zod validation schemas
-│       └── scripts/              # Database scripts
-│
 ├── public/                       # Static assets
 │   └── accessibility/            # Accessibility widget
-├── docker-compose.yml            # Docker configuration
-├── nginx.conf                    # Nginx reverse proxy configuration
+├── firestore.rules               # Firestore security rules
+├── firestore.indexes.json        # Firestore composite indexes
 ├── vercel.json                   # Vercel deployment configuration
-├── render.yaml                   # Render deployment configuration
 └── vite.config.ts                # Vite configuration
 ```
 
-## Production Deployment
-
-### Live URLs
-
-| Service | Platform | URL |
-|---------|----------|-----|
-| Frontend | Vercel | https://barby.kfirmoscovich.com |
-| Backend API | Render | https://barby-api.onrender.com |
-
-### Deploying to Vercel (Frontend)
+## Deployment (Vercel)
 
 1. Connect your GitHub repository to Vercel
-2. Configure the following settings:
-   - Framework Preset: Vite
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-3. Add environment variable:
-   ```
-   VITE_API_URL=https://barby-api.onrender.com/api
-   ```
+2. Framework Preset: **Vite**
+3. Add environment variables in Vercel Dashboard (same as .env)
 4. Deploy
 
-### Deploying to Render (Backend)
+### Firebase Setup
 
-1. Connect your GitHub repository to Render
-2. Use the `render.yaml` blueprint or configure manually:
-   - Build Command: `cd backend && npm install && npm run build`
-   - Start Command: `cd backend && npm start`
-3. Add environment variables:
-   - `MONGODB_URI` - Your MongoDB Atlas connection string
-   - `JWT_SECRET` - Generate with `openssl rand -base64 64`
-   - `JWT_REFRESH_SECRET` - Generate with `openssl rand -base64 64`
-   - `CORS_ORIGIN` - `https://barby.kfirmoscovich.com`
-   - `ADMIN_EMAIL` - Admin user email
-   - `ADMIN_PASSWORD` - Admin user password
-4. Deploy
-
-### Building for Production
-
-```bash
-# Build frontend
-npm run build
-
-# Build backend
-cd backend && npm run build
-```
-
-### Deployment Checklist
-
-- [ ] Update environment variables for production
-- [ ] Generate new JWT_SECRET and JWT_REFRESH_SECRET
-- [ ] Set NODE_ENV=production
-- [ ] Configure correct CORS origins
-- [ ] Enable HTTPS
-- [ ] Configure appropriate rate limiting
-- [ ] Set up MongoDB backups
-- [ ] Verify MongoDB indexes are created (check logs on first startup)
-- [ ] Test `/health` endpoint returns DB connected status
-- [ ] Verify keep-alive service is pinging from frontend
-
-### Docker Production
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
+1. Deploy Firestore security rules: copy `firestore.rules` to Firebase Console
+2. Create composite indexes: use `firestore.indexes.json` or let Firebase auto-create them
+3. Enable Email/Password authentication in Firebase Console
 
 ## Security
 
-This application implements the following security measures:
-
-- JWT authentication with refresh tokens
-- Rate limiting on all API routes
-- Helmet security headers
-- CORS configuration
-- Input sanitization
-- Password hashing with bcrypt
-- NoSQL injection protection
-- XSS protection
-- HTTPS redirect in production
-
-## Accessibility
-
-The application follows WCAG 2.1 guidelines:
-
-- Semantic HTML elements
-- ARIA labels and roles
-- Keyboard navigation support
-- Skip to content link
-- Focus visible indicators
-- Screen reader compatibility
-- Full RTL support
+- Firebase Auth with role-based access (admin, editor, viewer)
+- Firestore security rules with self-escalation prevention
+- DOMPurify for XSS protection on user-generated HTML
+- Server-side price validation for orders
+- Transactional gift card operations
+- Cryptographically secure gift card codes
+- Security headers via Vercel
 
 ## License
 

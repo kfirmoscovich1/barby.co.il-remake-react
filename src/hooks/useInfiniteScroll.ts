@@ -4,7 +4,7 @@ import type { PaginatedResponse } from '@/types'
 
 interface UseInfiniteScrollOptions<T> {
     queryKey: QueryKey
-    queryFn: (page: number) => Promise<PaginatedResponse<T>>
+    queryFn: (cursor?: string) => Promise<PaginatedResponse<T>>
     limit?: number
     enabled?: boolean
     threshold?: number // pixels from bottom to trigger load
@@ -36,24 +36,21 @@ export function useInfiniteScroll<T>({
         hasNextPage,
         fetchNextPage,
         error,
-    } = useInfiniteQuery<PaginatedResponse<T>, Error, InfiniteData<PaginatedResponse<T>>, QueryKey, number>({
+    } = useInfiniteQuery<PaginatedResponse<T>, Error, InfiniteData<PaginatedResponse<T>>, QueryKey, string | undefined>({
         queryKey,
         queryFn: async ({ pageParam }) => {
             return queryFn(pageParam)
         },
-        initialPageParam: 1,
+        initialPageParam: undefined,
         getNextPageParam: (lastPage) => {
-            if (lastPage.pagination && lastPage.pagination.page < lastPage.pagination.pages) {
-                return lastPage.pagination.page + 1
-            }
-            return undefined
+            return lastPage.lastDocId
         },
         enabled,
     })
 
     // Flatten all pages into single items array
     const items = data?.pages.flatMap((page) => page.items) || []
-    const totalItems = data?.pages[0]?.pagination?.total || 0
+    const totalItems = items.length
 
     // Setup intersection observer for infinite scroll
     const loadMoreRef = useCallback((node: HTMLDivElement | null) => {

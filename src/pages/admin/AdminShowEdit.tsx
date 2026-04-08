@@ -41,7 +41,7 @@ export function AdminShowEdit() {
             dateISO: '',
             doorsTime: '',
             venueName: 'בארבי',
-            venueAddress: 'דרך קיבוץ גלויות 52, תל אביב',
+            venueAddress: 'נמל יפו 1, יפו',
             status: 'available',
             ticketTiers: [{ label: 'כניסה רגילה', price: 0, currency: 'ILS', quantity: 0 }],
             tags: [],
@@ -64,11 +64,23 @@ export function AdminShowEdit() {
     useEffect(() => {
         if (data?.show) {
             const show = data.show
+            // Convert ISO date to datetime-local format (YYYY-MM-DDTHH:mm)
+            let dateLocal = ''
+            if (show.dateISO) {
+                try {
+                    const d = new Date(show.dateISO)
+                    dateLocal = d.getFullYear() + '-' +
+                        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(d.getDate()).padStart(2, '0') + 'T' +
+                        String(d.getHours()).padStart(2, '0') + ':' +
+                        String(d.getMinutes()).padStart(2, '0')
+                } catch { dateLocal = '' }
+            }
             reset({
                 title: show.title,
                 slug: show.slug,
-                description: show.description || '',
-                dateISO: show.dateISO,
+                description: show.description || '<p></p>',
+                dateISO: dateLocal,
                 doorsTime: show.doorsTime || '',
                 venueName: show.venueName,
                 venueAddress: show.venueAddress,
@@ -76,17 +88,23 @@ export function AdminShowEdit() {
                 isStanding: show.isStanding !== false, // default true
                 is360: show.is360 || false,
                 isInternational: (show as any).isInternational || false,
-                ticketTiers: show.ticketTiers.length > 0
+                ticketTiers: show.ticketTiers?.length > 0
                     ? show.ticketTiers.map(t => ({ ...t, quantity: (t as any).quantity || 0 }))
                     : [{ label: 'כניסה רגילה', price: 0, currency: 'ILS', quantity: 0 }],
-                tags: show.tags,
+                tags: show.tags || [],
                 featured: show.featured,
                 published: show.published !== false, // default true
                 archived: show.archived,
                 publishDelay: (show as any).publishDelay || '',
             })
-            // Handle image preview if there's an imageMediaId
-            // For now, we'll skip image preview from API
+            // Load existing image preview from media
+            if (show.imageMediaId) {
+                adminApi.getMediaById(show.imageMediaId).then(media => {
+                    if (media?.dataBase64) {
+                        setImagePreview(media.dataBase64)
+                    }
+                }).catch(() => { })
+            }
         }
     }, [data, reset])
 
@@ -254,9 +272,7 @@ export function AdminShowEdit() {
                         label="תאריך ושעה (ISO format)"
                         type="datetime-local"
                         error={errors.dateISO?.message}
-                        {...register('dateISO', {
-                            setValueAs: (v) => v ? new Date(v).toISOString() : '',
-                        })}
+                        {...register('dateISO')}
                     />
 
                     <Input
@@ -345,6 +361,7 @@ export function AdminShowEdit() {
                                 { value: 'few_left', label: 'כרטיסים בודדים' },
                                 { value: 'sold_out', label: 'אזל' },
                                 { value: 'closed', label: 'סגור' },
+                                { value: 'cancelled', label: 'בוטל' },
                             ]}
                             {...field}
                         />

@@ -12,13 +12,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
     // Security headers for development
     headers: {
       'X-Content-Type-Options': 'nosniff',
@@ -38,6 +31,15 @@ export default defineConfig({
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        manualChunks(id) {
+          if (id.includes('node_modules/firebase')) return 'firebase'
+          if (id.includes('node_modules/react-dom')) return 'vendor'
+          if (id.includes('node_modules/react-router')) return 'vendor'
+          if (id.includes('node_modules/@tanstack/react-query')) return 'query'
+          if (id.includes('node_modules/@tiptap') || id.includes('node_modules/prosemirror')) return 'editor'
+          if (id.includes('node_modules/react-icons')) return 'icons'
+          if (id.includes('node_modules/zod')) return 'zod'
+        },
       },
     },
   },

@@ -1,15 +1,23 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { BsPersonStanding } from 'react-icons/bs'
 import { GiWoodenChair } from 'react-icons/gi'
 import { TbRotate360 } from 'react-icons/tb'
 import { FiSearch, FiX } from 'react-icons/fi'
 import { Chandelier, ShowCard } from '@/components/feature'
-import { NoShowsMessage, LoadingError } from '@/components/common'
+import { NoShowsMessage, LoadingError, ShowGridSkeleton, TodayShowSkeleton } from '@/components/common'
+import { MediaImage } from '@/components/common'
 import { publicApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
-import { getImageUrl } from '@/utils'
+import { useInfiniteScroll } from '@/hooks'
 import type { Show } from '@/types'
+
+// Strip HTML tags from rich text for plain text display
+function stripHtml(html: string): string {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    return doc.body.textContent || ''
+}
 
 // Format date in Hebrew - full format
 function formatShowDate(dateISO: string): { day: string; date: string } {
@@ -36,26 +44,28 @@ type ShowWithStock = Show & { remainingTickets?: number }
 // Today's featured show component
 function TodayShow({ show }: { show: ShowWithStock }) {
     const isSoldOut = show.status === 'sold_out'
-    const imageUrl = show.imageMediaId ? getImageUrl(show.imageMediaId) : null
     const { day, date } = formatShowDate(show.dateISO)
 
     // Today's show - always show "ההופעה היום!" badge, never "sold out"
     return (
-        <div className={`block bg-barby-burgundy/40 border-2 ${isSoldOut ? 'border-barby-gold/30 cursor-default' : 'border-barby-gold/50'} rounded-lg overflow-hidden max-w-md mx-auto`}>
+        <Link
+            to={`/show/${show.slug || show.id}`}
+            className={`block bg-barby-burgundy/40 border-2 ${isSoldOut ? 'border-barby-gold/30' : 'border-barby-gold/50 hover:border-barby-gold/80'} rounded-lg overflow-hidden max-w-md mx-auto transition-all`}
+        >
             <div className="flex flex-col sm:flex-row">
                 {/* Show Image */}
                 <div className="sm:w-40 md:w-48 aspect-square overflow-hidden relative flex-shrink-0">
-                    {imageUrl ? (
-                        <img
-                            src={imageUrl}
-                            alt={show.title}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center">
-                            <Chandelier size="md" />
-                        </div>
-                    )}
+                    <MediaImage
+                        mediaId={show.imageMediaId}
+                        alt={show.title}
+                        variant="thumbnail"
+                        className="w-full h-full object-cover"
+                        fallback={
+                            <div className="w-full h-full bg-barby-darker/50 flex items-center justify-center">
+                                <Chandelier size="md" />
+                            </div>
+                        }
+                    />
 
                     {/* Sold out badge - top right corner */}
                     {isSoldOut && (
@@ -96,7 +106,7 @@ function TodayShow({ show }: { show: ShowWithStock }) {
                     </h2>
                     {show.description && (
                         <p className={`${isSoldOut ? 'text-barby-cream/50' : 'text-barby-cream/70'} text-xs sm:text-sm mb-1 line-clamp-2`}>
-                            {show.description}
+                            {stripHtml(show.description)}
                         </p>
                     )}
                     <p className={`${isSoldOut ? 'text-barby-cream/50' : 'text-barby-cream/60'} text-xs sm:text-sm`}>
@@ -104,37 +114,26 @@ function TodayShow({ show }: { show: ShowWithStock }) {
                     </p>
                 </div>
             </div>
-        </div>
+        </Link>
     )
 }
 
 export function HomePage() {
-    const limit = 24
+    const limit = 100  // Maximum allowed
     const [searchQuery, setSearchQuery] = useState('')
 
     // Fetch site settings for marquee items
     const { data: settingsData } = useQuery({
         queryKey: queryKeys.settings.public,
         queryFn: publicApi.getSettings,
-        staleTime: 1000 * 60 * 15, // 15 minutes
     })
     const marqueeItems = settingsData?.settings?.marqueeItems || []
 
-    // Use simple query instead of infinite scroll for faster initial load
-    const { data: showsData, isLoading, error } = useQuery({
+    const { items: shows, isLoading, isFetchingNextPage, hasNextPage, loadMoreRef, error } = useInfiniteScroll<Show>({
         queryKey: queryKeys.shows.list({ limit }),
-        queryFn: () => publicApi.getShows({ page: 1, limit }),
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        queryFn: (cursor) => publicApi.getShows({ cursor, limit }),
+        limit,
     })
-
-    // Safely extract shows from response data
-    const shows = useMemo(() => {
-        if (!showsData) return []
-        // Handle both possible response structures
-        if (Array.isArray(showsData)) return showsData
-        if (showsData.items && Array.isArray(showsData.items)) return showsData.items
-        return []
-    }, [showsData])
 
     // Filter shows by search query (title or description)
     const filteredShows = searchQuery.trim()
@@ -146,39 +145,27 @@ export function HomePage() {
         })
         : shows
 
+    // Find all today's shows and sort by doors time
+    const todayShows = filteredShows
+        .filter(show => show && show.dateISO && isToday(show.dateISO))
+        .sort((a, b) => {
+            // Sort by doors time (HH:MM format)
+            return (a.doorsTime || '00:00').localeCompare(b.doorsTime || '00:00')
+        })
+
     // Get current time in HH:MM format
     const now = new Date()
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
 
-    // Find all today's shows sorted by doors time
-    const allTodayShows = filteredShows
-        .filter(show => show && show.dateISO && isToday(show.dateISO))
-        .sort((a, b) => {
-            // Sort by doors time (HH:MM format) - earliest first
-            return (a.doorsTime || '00:00').localeCompare(b.doorsTime || '00:00')
-        })
+    // Find the next upcoming show (doors time hasn't passed yet) or the last one if all have passed
+    const upcomingTodayShow = todayShows.find(show => (show.doorsTime || '00:00') > currentTime) || todayShows[todayShows.length - 1]
 
-    // Find today's shows that haven't passed yet (doors time > current time)
-    const todayUpcomingShows = allTodayShows.filter(show => (show.doorsTime || '00:00') > currentTime)
-
-    // The first upcoming show goes to the featured spot at the top
-    // If all shows have passed, no featured show
-    const featuredTodayShow = todayUpcomingShows.length > 0 ? todayUpcomingShows[0] : null
-
-    // Other shows to display in the grid:
-    // - All future shows (not today)
-    // - Today's shows that passed their time (they stay visible until archived by backend at end of day)
-    // - Today's upcoming shows except the featured one
+    // Other shows exclude all of today's shows except the featured one
     const otherShows = filteredShows
         .filter(show => show && show.dateISO)
-        .filter(show => {
-            // Exclude the featured show
-            if (featuredTodayShow && show.id === featuredTodayShow.id) {
-                return false
-            }
-            // Include all other shows (future, past today, other today upcoming)
-            return true
-        })
+        .filter(show =>
+            !isToday(show.dateISO) || (upcomingTodayShow && show.id === upcomingTodayShow.id ? false : true)
+        ).filter(show => show.id !== upcomingTodayShow?.id)
 
     // Handle error state
     if (error && shows.length === 0) {
@@ -196,11 +183,11 @@ export function HomePage() {
 
             {/* Info Notice - Scrolling Marquee */}
             {marqueeItems.length > 0 && (
-                <section className="w-full pb-6">
+                <section className="w-full max-w-full overflow-hidden pb-6">
                     <div className="bg-barby-darker/80 border-y border-barby-gold/30 overflow-hidden">
-                        <div className="py-3">
+                        <div className="py-3 overflow-hidden">
                             <div
-                                className="flex w-fit animate-marquee"
+                                className="flex marquee-track"
                                 style={{
                                     animationDuration: `${Math.max(30, marqueeItems.length * 8)}s`
                                 }}
@@ -221,12 +208,13 @@ export function HomePage() {
                         </div>
                     </div>
                     <style>{`
-                        @keyframes marquee {
-                            0% { transform: translateX(0%); }
+                        @keyframes marquee-rtl {
+                            0% { transform: translateX(0); }
                             100% { transform: translateX(50%); }
                         }
-                        .animate-marquee {
-                            animation: marquee linear infinite;
+                        .marquee-track {
+                            width: max-content;
+                            animation: marquee-rtl linear infinite;
                             will-change: transform;
                         }
                     `}</style>
@@ -234,9 +222,9 @@ export function HomePage() {
             )}
 
             {/* Today's Show - Featured */}
-            {featuredTodayShow && !searchQuery && (
+            {upcomingTodayShow && !searchQuery && (
                 <section className="container mx-auto px-4 pb-6">
-                    <TodayShow show={featuredTodayShow} />
+                    <TodayShow show={upcomingTodayShow} />
                 </section>
             )}
 
@@ -270,11 +258,7 @@ export function HomePage() {
             {/* Shows Grid */}
             <section className="container mx-auto px-4 pb-16">
                 {isLoading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {[...Array(12)].map((_, i) => (
-                            <div key={i} className="aspect-square bg-barby-darker/50 animate-pulse rounded-lg" />
-                        ))}
-                    </div>
+                    <ShowGridSkeleton count={12} />
                 ) : shows.length === 0 ? (
                     <NoShowsMessage />
                 ) : (
@@ -284,6 +268,19 @@ export function HomePage() {
                         ))}
                     </div>
                 )}
+
+                {/* Load More Trigger */}
+                <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
+                    {isFetchingNextPage && (
+                        <div className="flex items-center gap-3 text-barby-cream/60">
+                            <div className="w-6 h-6 border-2 border-barby-gold border-t-transparent rounded-full animate-spin" />
+                            <span>טוען עוד הופעות...</span>
+                        </div>
+                    )}
+                    {!hasNextPage && shows.length > 0 && (
+                        <p className="text-barby-cream/40 text-sm">הגעת לסוף הרשימה</p>
+                    )}
+                </div>
             </section>
         </div>
     )
