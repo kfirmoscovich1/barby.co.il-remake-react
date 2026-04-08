@@ -36,14 +36,14 @@ export function useInfiniteScroll<T>({
         hasNextPage,
         fetchNextPage,
         error,
-    } = useInfiniteQuery<PaginatedResponse<T>, Error, InfiniteData<PaginatedResponse<T>>, QueryKey, string | undefined>({
+    } = useInfiniteQuery<PaginatedResponse<T>, Error, InfiniteData<PaginatedResponse<T>>, QueryKey, string>({
         queryKey,
         queryFn: async ({ pageParam }) => {
-            return queryFn(pageParam)
+            return queryFn(pageParam || undefined)
         },
-        initialPageParam: undefined,
+        initialPageParam: '',
         getNextPageParam: (lastPage) => {
-            return lastPage.lastDocId
+            return lastPage.lastDocId || undefined
         },
         enabled,
     })
