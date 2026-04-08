@@ -24,18 +24,12 @@ import { AuthProvider } from '@/context/AuthContext'
 import { queryClient, queryKeys } from '@/services/queryClient'
 import { router } from '@/router'
 import { ErrorBoundary, SkipLink } from '@/components/common'
-import { startKeepAlive, stopKeepAlive, warmupServer } from '@/services/keepAlive'
 import { publicApi } from '@/services/api'
 
 /**
  * PERFORMANCE: Prefetch critical data on app load using parallel requests
- * This reduces perceived load time by fetching data before user navigates
  */
 async function prefetchCriticalData(): Promise<void> {
-    // PERFORMANCE: First warm up the server and DB connection
-    await warmupServer()
-
-    // PERFORMANCE: Then prefetch data in parallel
     await Promise.all([
         queryClient.prefetchQuery({
             queryKey: queryKeys.settings.public,
@@ -44,7 +38,7 @@ async function prefetchCriticalData(): Promise<void> {
         }),
         queryClient.prefetchQuery({
             queryKey: queryKeys.shows.list({ limit: 24 }),
-            queryFn: () => publicApi.getShows({ page: 1, limit: 24 }),
+            queryFn: () => publicApi.getShows({ limit: 24 }),
             staleTime: 1000 * 60 * 5,
         }),
     ]).catch((error) => {
@@ -53,11 +47,8 @@ async function prefetchCriticalData(): Promise<void> {
 }
 
 export function App() {
-    // PERFORMANCE: Start keep-alive service and prefetch data immediately
     useEffect(() => {
-        startKeepAlive()
         prefetchCriticalData()
-        return () => stopKeepAlive()
     }, [])
     return (
         <ErrorBoundary>

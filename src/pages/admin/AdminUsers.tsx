@@ -11,14 +11,14 @@ interface CreateUserForm {
     name: string
     email: string
     password: string
-    role: 'admin' | 'editor'
+    role: 'admin' | 'editor' | 'viewer'
 }
 
 interface EditUserForm {
     name?: string
     email?: string
     password?: string
-    role?: 'admin' | 'editor'
+    role?: 'admin' | 'editor' | 'viewer'
 }
 
 export function AdminUsers() {
