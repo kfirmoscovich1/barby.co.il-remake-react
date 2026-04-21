@@ -1,11 +1,3 @@
-/**
- * @file api.ts
- * @description API service layer using Firebase Firestore and Auth.
- *
- * Replaces the previous REST API backend with direct Firebase SDK calls.
- * Maintains the same exported interface so all consuming components work unchanged.
- */
-
 import {
     collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
     query, where, orderBy, limit as firestoreLimit, startAfter,
@@ -179,6 +171,48 @@ async function resizeImage(
     })
 }
 
+/**
+ * Creates a tiny 120×120 JPEG card thumbnail (data URL) from an existing media document.
+ * Stored directly in the Show document so the homepage needs zero extra Firestore reads for images.
+ */
+async function createCardThumbnail(mediaId: string): Promise<string | null> {
+    try {
+        const docSnap = await getDoc(doc(db, 'media', mediaId))
+        if (!docSnap.exists()) return null
+        const data = docSnap.data()
+
+        const thumb = (data.variants as { name: string; dataBase64: string; contentType: string }[] | undefined)
+            ?.find(v => v.name === 'thumbnail')
+        const base64 = thumb?.dataBase64 || data.dataBase64 as string
+        const contentType = thumb?.contentType || data.contentType as string || 'image/jpeg'
+        if (!base64) return null
+
+        return new Promise<string | null>((resolve) => {
+            const img = new Image()
+            img.onload = () => {
+                const SIZE = 120
+                const canvas = document.createElement('canvas')
+                canvas.width = SIZE
+                canvas.height = SIZE
+                const ctx = canvas.getContext('2d')
+                if (!ctx) { resolve(null); return }
+                // Center-crop to square
+                const scale = Math.max(SIZE / img.width, SIZE / img.height)
+                const sw = SIZE / scale
+                const sh = SIZE / scale
+                const sx = (img.width - sw) / 2
+                const sy = (img.height - sh) / 2
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, SIZE, SIZE)
+                resolve(canvas.toDataURL('image/jpeg', 0.5))
+            }
+            img.onerror = () => resolve(null)
+            img.src = `data:${contentType};base64,${base64}`
+        })
+    } catch {
+        return null
+    }
+}
+
 async function generateOrderNumber(): Promise<string> {
     const counterRef = doc(db, 'counters', 'orders')
     const newNumber = await runTransaction(db, async (transaction) => {
@@ -219,13 +253,14 @@ function getDefaultSettings(): SiteSettings {
 // ==================== Auth API ====================
 
 export const authApi = {
-    register: async (data: { email: string; password: string; name: string }) => {
+    register: async (data: { email: string; password: string; name: string; phone?: string }) => {
         const credential = await createUserWithEmailAndPassword(auth, data.email, data.password)
         const uid = credential.user.uid
 
         const userData = {
             name: data.name,
             email: data.email,
+            phone: data.phone || '',
             role: 'viewer' as const,
             isActive: true,
             createdAt: serverTimestamp(),
@@ -270,7 +305,6 @@ export const publicApi = {
         const constraints: QueryConstraint[] = [
             where('published', '==', true),
             where('archived', '==', false),
-            orderBy('dateISO', 'desc'),
         ]
 
         if (params?.cursor) {
@@ -448,6 +482,13 @@ export const adminApi = {
             updatedBy: user.uid,
         }
         delete (showData as Record<string, unknown>).id
+
+        // Embed card thumbnail so homepage loads images without extra Firestore reads
+        if (data.imageMediaId) {
+            const cardThumbnail = await createCardThumbnail(data.imageMediaId)
+            if (cardThumbnail) (showData as Record<string, unknown>).cardThumbnail = cardThumbnail
+        }
+
         const docRef = await addDoc(collection(db, 'shows'), showData)
         await logAudit('create', 'show', docRef.id, `Created show: ${data.title}`)
         const created = await getDoc(docRef)
@@ -456,8 +497,15 @@ export const adminApi = {
 
     updateShow: async (id: string, data: Partial<Show>) => {
         const user = requireAuth()
-        const updateData = { ...data, updatedAt: serverTimestamp(), updatedBy: user.uid }
-        delete (updateData as Record<string, unknown>).id
+        const updateData: Record<string, unknown> = { ...data, updatedAt: serverTimestamp(), updatedBy: user.uid }
+        delete updateData.id
+
+        // Re-embed card thumbnail if imageMediaId changed
+        if (data.imageMediaId) {
+            const cardThumbnail = await createCardThumbnail(data.imageMediaId)
+            if (cardThumbnail) updateData.cardThumbnail = cardThumbnail
+        }
+
         await updateDoc(doc(db, 'shows', id), updateData)
         await logAudit('update', 'show', id, `Updated show: ${data.title || id}`)
         const updated = await getDoc(doc(db, 'shows', id))
@@ -467,6 +515,28 @@ export const adminApi = {
     deleteShow: async (id: string) => {
         await deleteDoc(doc(db, 'shows', id))
         await logAudit('delete', 'show', id)
+    },
+
+    /**
+     * Finds all non-archived shows whose dateISO is before today and marks them as archived.
+     * Should be called by admins on dashboard load.
+     */
+    autoArchivePastShows: async (): Promise<number> => {
+        const todayStr = new Date().toISOString().slice(0, 10)
+        const q = query(
+            collection(db, 'shows'),
+            where('archived', '==', false),
+            where('dateISO', '<', todayStr),
+        )
+        const snapshot = await getDocs(q)
+        if (snapshot.empty) return 0
+
+        const batch = writeBatch(db)
+        snapshot.docs.forEach(d => {
+            batch.update(d.ref, { archived: true, updatedAt: serverTimestamp() })
+        })
+        await batch.commit()
+        return snapshot.docs.length
     },
 
     // Pages

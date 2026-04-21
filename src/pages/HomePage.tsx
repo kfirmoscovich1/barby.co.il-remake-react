@@ -6,7 +6,7 @@ import { GiWoodenChair } from 'react-icons/gi'
 import { TbRotate360 } from 'react-icons/tb'
 import { FiSearch, FiX } from 'react-icons/fi'
 import { Chandelier, ShowCard } from '@/components/feature'
-import { NoShowsMessage, LoadingError, ShowGridSkeleton } from '@/components/common'
+import { NoShowsMessage, LoadingError, ShowGridSkeleton, ScrollToTopButton } from '@/components/common'
 import { MediaImage } from '@/components/common'
 import { publicApi } from '@/services/api'
 import { queryKeys } from '@/services/queryClient'
@@ -56,7 +56,7 @@ function TodayShow({ show }: { show: ShowWithStock }) {
                 {/* Show Image */}
                 <div className="sm:w-40 md:w-48 aspect-square overflow-hidden relative flex-shrink-0">
                     <MediaImage
-                        mediaId={show.imageMediaId}
+                        mediaId={show.cardThumbnail || show.imageMediaId}
                         alt={show.title}
                         variant="thumbnail"
                         className="w-full h-full object-cover"
@@ -135,15 +135,21 @@ export function HomePage() {
         limit,
     })
 
+    // Filter to upcoming shows and sort by date ascending (nearest first)
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const upcomingShows = shows
+        .filter(show => show.dateISO >= todayStr)
+        .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
+
     // Filter shows by search query (title or description)
     const filteredShows = searchQuery.trim()
-        ? shows.filter(show => {
-            const query = searchQuery.toLowerCase().trim()
-            const titleMatch = show.title?.toLowerCase().includes(query)
-            const descMatch = show.description?.toLowerCase().includes(query)
+        ? upcomingShows.filter(show => {
+            const q = searchQuery.toLowerCase().trim()
+            const titleMatch = show.title?.toLowerCase().includes(q)
+            const descMatch = show.description?.toLowerCase().includes(q)
             return titleMatch || descMatch
         })
-        : shows
+        : upcomingShows
 
     // Find all today's shows and sort by doors time
     const todayShows = filteredShows
@@ -217,6 +223,9 @@ export function HomePage() {
                             animation: marquee-rtl linear infinite;
                             will-change: transform;
                         }
+                        @media (prefers-reduced-motion: reduce) {
+                            .marquee-track { animation: none; }
+                        }
                     `}</style>
                 </section>
             )}
@@ -229,20 +238,22 @@ export function HomePage() {
             )}
 
             {/* Search Bar */}
-            <section className="container mx-auto px-4 pb-6">
+            <section className="container mx-auto px-4 pb-6" aria-label="חיפוש הופעות">
                 <div className="relative max-w-md mx-auto">
-                    <FiSearch className="absolute right-4 top-1/2 -translate-y-1/2 text-barby-cream/50 w-5 h-5" />
+                    <FiSearch className="absolute right-4 top-1/2 -translate-y-1/2 text-barby-cream/50 w-5 h-5" aria-hidden="true" />
                     <input
-                        type="text"
+                        type="search"
                         placeholder="חפש מופעים..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        aria-label="חיפוש לפי שם אמן או תיאור"
                         className="w-full bg-barby-darker/80 border border-barby-gold/30 rounded-lg py-3 pr-12 pl-10 text-barby-cream placeholder:text-barby-cream/40 focus:outline-none focus:border-barby-gold/60 transition-colors"
                     />
                     {searchQuery && (
                         <button
                             onClick={() => setSearchQuery('')}
                             className="absolute left-4 top-1/2 -translate-y-1/2 text-barby-cream/50 hover:text-barby-cream transition-colors"
+                            aria-label="נקה חיפוש"
                         >
                             <FiX className="w-5 h-5" />
                         </button>
@@ -259,7 +270,7 @@ export function HomePage() {
             <section className="container mx-auto px-4 pb-16">
                 {isLoading ? (
                     <ShowGridSkeleton count={12} />
-                ) : shows.length === 0 ? (
+                ) : filteredShows.length === 0 ? (
                     <NoShowsMessage />
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -282,6 +293,8 @@ export function HomePage() {
                     )}
                 </div>
             </section>
+
+            <ScrollToTopButton />
         </div>
     )
 }

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "show-fixture-1",
+    "title": "Test Artist",
+    "slug": "test-artist",
+    "dateISO": "2099-06-15T20:00:00.000Z",
+    "doorsTime": "20:00",
+    "description": "A great show",
+    "status": "available",
+    "isStanding": true,
+    "is360": false,
+    "venueName": "Barby",
+    "venueAddress": "Tel Aviv",
+    "ticketTiers": [{ "label": "כניסה", "price": 80, "currency": "ILS" }],
+    "tags": [],
+    "featured": false,
+    "published": true,
+    "archived": false
+  }
+]

@@ -1,17 +1,3 @@
-/**
- * @file router.tsx
- * @description Application routing configuration using React Router v6.
- * 
- * Route Structure:
- * - Public routes: Home, Shows, Archive, Static pages
- * - Protected routes: User profile (requires authentication)
- * - Admin routes: Dashboard, Shows, Pages, Media, Users, Settings (requires editor role)
- * 
- * Authentication:
- * - ProtectedRoute: Redirects to login if not authenticated
- * - EditorRoute: Redirects to home if not an editor/admin
- */
-
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
@@ -116,7 +102,7 @@ export const router = createBrowserRouter([
             { path: '/terms', element: <PageContent /> },
             { path: '/accessibility', element: <PageContent /> },
             { path: '/privacy', element: <PageContent /> },
-            // Special pages with forms/logic
+            // Pages with their own logic
             { path: '/unsubscribe', element: <UnsubscribePage /> },
             { path: '/faq', element: <FAQPage /> },
             { path: '/page/:slug', element: <PageContent /> },

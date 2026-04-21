@@ -9,6 +9,13 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // Ensure a single copy of ProseMirror is bundled — prevents "Cannot set properties of undefined" crash
+    dedupe: [
+      'prosemirror-model',
+      'prosemirror-state',
+      'prosemirror-view',
+      'prosemirror-transform',
+    ],
   },
   server: {
     port: 5173,

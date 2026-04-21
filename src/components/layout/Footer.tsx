@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { publicApi } from '@/services/api'
@@ -32,6 +32,16 @@ export function Footer() {
     // Default navigation URLs (can be overridden in admin)
     const googleMapsUrl = footer?.googleMapsUrl || 'https://www.google.com/maps/place/Barby/@32.0529,34.7513,17z'
     const wazeUrl = footer?.wazeUrl || 'https://waze.com/ul?ll=32.0529,34.7513&navigate=yes'
+
+    // Close popup on Escape key
+    useEffect(() => {
+        if (!showNavigationPopup) return
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setShowNavigationPopup(false)
+        }
+        document.addEventListener('keydown', handleKey)
+        return () => document.removeEventListener('keydown', handleKey)
+    }, [showNavigationPopup])
 
     return (
         <footer className="bg-barby-darker/90 backdrop-blur-sm border-t border-barby-gold/20 relative z-10" role="contentinfo">

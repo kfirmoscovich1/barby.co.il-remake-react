@@ -1,15 +1,3 @@
-/**
- * @file types/index.ts
- * @description Centralized TypeScript type definitions for the frontend application.
- * 
- * This module contains all shared types used across the React application including:
- * - Entity types (User, Show, Page, etc.)
- * - API response types
- * - Form input types
- * 
- * These types ensure type safety across all components, hooks, and services.
- */
-
 // ==========================================
 // User Types
 // ==========================================
@@ -19,6 +7,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
+    phone?: string;
     role: UserRole;
     isActive: boolean;
     createdAt: Date;
@@ -53,6 +42,7 @@ export interface Show {
     doorsTime?: string;
     description: string;
     imageMediaId?: string;
+    cardThumbnail?: string;
     status: ShowStatus;
     isStanding?: boolean;
     is360?: boolean;
@@ -79,6 +69,7 @@ export interface ShowListItem {
     doorsTime?: string;
     description?: string;
     imageMediaId?: string;
+    cardThumbnail?: string;
     status: ShowStatus;
     isStanding?: boolean;
     is360?: boolean;

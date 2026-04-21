@@ -1,5 +1,7 @@
+import { memo, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import type { Show } from '@/types'
+import { computeShowStatus } from '@/utils'
 import { BsPersonStanding } from 'react-icons/bs'
 import { GiWoodenChair } from 'react-icons/gi'
 import { TbRotate360 } from 'react-icons/tb'
@@ -31,19 +33,22 @@ interface ShowCardProps {
     show: ShowWithStock
 }
 
-export function ShowCard({ show }: ShowCardProps) {
-    const isSoldOut = show.status === 'sold_out'
-    const isCancelled = show.status === 'cancelled'
-    const isLowStock = !isSoldOut && !isCancelled && (show.status === 'few_left' || (show.remainingTickets !== undefined && show.remainingTickets <= 20))
-    const { day, date, fullDate } = formatShowDate(show.dateISO)
+export const ShowCard = memo(function ShowCard({ show }: ShowCardProps) {
+    const effectiveStatus = useMemo(() => computeShowStatus(show), [show])
+    const isSoldOut = effectiveStatus === 'sold_out'
+    const isCancelled = effectiveStatus === 'cancelled'
+    const isLowStock = effectiveStatus === 'few_left'
+    const { day, date, fullDate } = useMemo(() => formatShowDate(show.dateISO), [show.dateISO])
 
     // Check if show is today
-    const today = new Date()
-    const showDate = new Date(show.dateISO)
-    const isToday = today.toDateString() === showDate.toDateString()
+    const isToday = useMemo(() => {
+        const today = new Date()
+        const showDate = new Date(show.dateISO)
+        return today.toDateString() === showDate.toDateString()
+    }, [show.dateISO])
 
     // Build accessible label for screen readers
-    const getAriaLabel = () => {
+    const ariaLabel = useMemo(() => {
         let label = `${show.title}`
         if (show.description) label += `, ${stripHtml(show.description)}`
         label += `. ${fullDate}, פתיחת דלתות ${show.doorsTime || 'לא צוין'}`
@@ -55,7 +60,7 @@ export function ShowCard({ show }: ShowCardProps) {
         if (show.isStanding === false) label += '. מופע בישיבה'
         else label += '. מופע בעמידה'
         return label
-    }
+    }, [show.title, show.description, fullDate, show.doorsTime, isCancelled, isSoldOut, isToday, isLowStock, show.is360, show.isStanding])
 
     // Cancelled or Sold out shows - still clickable but with muted style
     if ((isSoldOut && !isToday) || isCancelled) {
@@ -63,12 +68,12 @@ export function ShowCard({ show }: ShowCardProps) {
             <Link
                 to={`/show/${show.slug || show.id}`}
                 className="block bg-barby-darker/40 border border-barby-gold/20 rounded-lg overflow-hidden hover:border-barby-gold/40 transition-all"
-                aria-label={getAriaLabel()}
+                aria-label={ariaLabel}
             >
                 {/* Show Image */}
                 <div className="aspect-square overflow-hidden relative">
                     <MediaImage
-                        mediaId={show.imageMediaId}
+                        mediaId={show.cardThumbnail || show.imageMediaId}
                         alt=""
                         variant="thumbnail"
                         className="w-full h-full object-cover"
@@ -162,12 +167,12 @@ export function ShowCard({ show }: ShowCardProps) {
         <Link
             to={`/show/${show.slug || show.id}`}
             className="group block bg-barby-darker/40 border border-barby-gold/20 rounded-lg overflow-hidden hover:border-barby-gold/50 hover:bg-barby-burgundy/30 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barby-gold focus-visible:ring-offset-2 focus-visible:ring-offset-barby-dark"
-            aria-label={getAriaLabel()}
+            aria-label={ariaLabel}
         >
             {/* Show Image */}
             <div className="aspect-square overflow-hidden relative">
                 <MediaImage
-                    mediaId={show.imageMediaId}
+                    mediaId={show.cardThumbnail || show.imageMediaId}
                     alt=""
                     variant="thumbnail"
                     className="w-full h-full object-cover"
@@ -221,4 +226,4 @@ export function ShowCard({ show }: ShowCardProps) {
             </div>
         </Link>
     )
-}
+})

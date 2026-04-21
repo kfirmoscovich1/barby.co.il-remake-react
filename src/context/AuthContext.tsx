@@ -57,6 +57,7 @@ async function getOrCreateUserDoc(firebaseUser: { uid: string; email: string | n
         id: firebaseUser.uid,
         email: data.email || firebaseUser.email || '',
         name: data.name || '',
+        phone: data.phone || '',
         role: data.role || 'viewer',
         isActive: data.isActive ?? true,
         createdAt: data.createdAt?.toDate?.() || new Date(),

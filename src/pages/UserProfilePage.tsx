@@ -140,7 +140,7 @@ export function UserProfilePage() {
         firstName: nameParts[0] || 'משתמש',
         lastName: nameParts.slice(1).join(' ') || '',
         email: user?.email || '',
-        phone: '', // TODO: Add phone to user model
+        phone: user?.phone || '',
         ordersCount: myOrders.length,
     }
 

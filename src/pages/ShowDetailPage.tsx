@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import DOMPurify from 'dompurify'
-import { formatPrice } from '@/utils'
+import { formatPrice, computeShowStatus } from '@/utils'
 import { Button, EmptyState, ShowDetailSkeleton, Input, MediaImage } from '@/components/common'
 import { Chandelier } from '@/components/feature'
 import { publicApi, orderApi } from '@/services/api'
@@ -107,8 +107,9 @@ export function ShowDetailPage() {
         )
     }
 
-    const isSoldOut = show.status === 'sold_out'
-    const isCancelled = show.status === 'cancelled'
+    const effectiveStatus = computeShowStatus(show)
+    const isSoldOut = effectiveStatus === 'sold_out'
+    const isCancelled = effectiveStatus === 'cancelled'
     const { day, fullDate } = formatShowDate(show.dateISO)
 
     // Calculate total
@@ -419,12 +420,12 @@ export function ShowDetailPage() {
                                     </h1>
 
                                     {/* Date & Time */}
-                                    <p className="text-barby-cream/80 text-sm md:text-lg mb-4 whitespace-nowrap">
+                                    <p className="text-barby-cream/80 text-sm md:text-lg mb-4">
                                         {fullDate} | {day} | דלתות: {show.doorsTime || '20:30'}
                                     </p>
 
                                     {/* Show Type Text */}
-                                    <p className="text-barby-cream/60 text-xs md:text-sm mb-6 whitespace-nowrap">
+                                    <p className="text-barby-cream/60 text-xs md:text-sm mb-6">
                                         {show.isStanding === false ? 'מופע ישיבה' : show.is360 ? 'מופע עמידה 360' : 'מופע עמידה'}
                                         <span className="mx-1 md:mx-2">|</span>
                                         (הופעה מתחילה שעה עד שעה וחצי מפתיחת דלתות)
@@ -433,7 +434,7 @@ export function ShowDetailPage() {
                                     {/* Description */}
                                     {show.description && (
                                         <div
-                                            className="text-barby-cream/90 leading-relaxed mb-6 whitespace-pre-line"
+                                            className="text-barby-cream/90 leading-relaxed mb-6 whitespace-pre-line break-words"
                                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(show.description) }}
                                         />
                                     )}
@@ -453,8 +454,8 @@ export function ShowDetailPage() {
                                         <div className="space-y-3 mb-3">
                                             {show.ticketTiers.map((tier, index) => (
                                                 <div key={index} className="flex items-center justify-between gap-2 md:gap-4">
-                                                    <span className="text-sm md:text-lg font-bold text-barby-gold whitespace-nowrap">{formatPrice(tier.price)}</span>
-                                                    <span className="text-barby-cream flex-1 text-center text-sm md:text-base whitespace-nowrap">{tier.label}</span>
+                                                    <span className="text-sm md:text-lg font-bold text-barby-gold shrink-0">{formatPrice(tier.price)}</span>
+                                                    <span className="text-barby-cream flex-1 text-center text-sm md:text-base min-w-0 break-words">{tier.label}</span>
                                                     <select
                                                         className="bg-barby-darker border border-barby-gold/30 text-barby-cream px-2 md:px-3 py-1.5 md:py-2 rounded min-w-[60px] md:min-w-[70px] text-sm md:text-base"
                                                         value={quantities[index]}

@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
+import type { ShowStatus, TicketTier } from '@/types'
 
 export function cn(...inputs: ClassValue[]) {
     return clsx(inputs)
@@ -57,6 +58,32 @@ export function debounce<T extends (...args: Parameters<T>) => void>(
         clearTimeout(timeoutId)
         timeoutId = setTimeout(() => fn(...args), delay)
     }
+}
+
+/**
+ * Derives the effective show status from ticket tier quantities.
+ * The admin-set `status` field is the baseline, but if ticket quantities
+ * have been entered, they take precedence for sold_out / few_left detection.
+ *
+ * Rules:
+ *  - `cancelled` always wins
+ *  - If all tracked tiers have quantity 0  → `sold_out`
+ *  - If total remaining tickets ≤ 20       → `few_left`
+ *  - Otherwise fall back to the stored status
+ */
+export function computeShowStatus(show: { status: ShowStatus; ticketTiers?: TicketTier[] }): ShowStatus {
+    if (show.status === 'cancelled') return 'cancelled'
+
+    const tiers = show.ticketTiers ?? []
+    const tracked = tiers.filter(t => typeof t.quantity === 'number')
+
+    if (tracked.length > 0) {
+        const total = tracked.reduce((sum, t) => sum + (t.quantity ?? 0), 0)
+        if (total === 0) return 'sold_out'
+        if (total <= 20) return 'few_left'
+    }
+
+    return show.status
 }
 
 export function getImageUrl(mediaIdOrUrl: string | undefined, fallback = ''): string {

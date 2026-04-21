@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { adminApi } from '@/services/api'
@@ -7,6 +8,11 @@ import { useAuth } from '@/context/AuthContext'
 
 export function AdminDashboard() {
     const { isAdmin } = useAuth()
+
+    // Auto-archive shows whose date has passed
+    useEffect(() => {
+        adminApi.autoArchivePastShows().catch(() => { /* silent */ })
+    }, [])
 
     const { data: showsData, isLoading: isLoadingShows } = useQuery({
         queryKey: queryKeys.admin.shows.list({ limit: 5 }),

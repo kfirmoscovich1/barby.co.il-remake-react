@@ -46,6 +46,8 @@ export function Header() {
         queryFn: publicApi.getSettings,
     })
     const socialLinks = settingsData?.settings?.footer?.socialLinks || []
+    const address = settingsData?.settings?.footer?.address || 'נמל יפו 1, יפו'
+    const phone = settingsData?.settings?.footer?.phone || '03-5188123'
 
     return (
         <header className="sticky top-0 z-50" role="banner">
@@ -71,14 +73,14 @@ export function Header() {
                         })}
                     </div>
                     <div className="text-barby-cream/60">
-                        <span>נמל יפו 1, יפו</span>
+                        <span>{address}</span>
                         <span className="mx-2" aria-hidden="true">|</span>
                         <a
-                            href="tel:03-5188123"
+                            href={`tel:${phone}`}
                             className="hover:text-barby-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-barby-gold rounded"
-                            aria-label="התקשרו אלינו: 03-5188123"
+                            aria-label={`התקשרו אלינו: ${phone}`}
                         >
-                            03-5188123
+                            {phone}
                         </a>
                     </div>
                 </div>

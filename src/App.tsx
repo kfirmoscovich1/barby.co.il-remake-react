@@ -1,21 +1,3 @@
-/**
- * @file App.tsx
- * @description Root application component for the Barby Music Club frontend.
- * 
- * This component wraps the application with:
- * - React Query for server state management
- * - Authentication context provider
- * - React Router for client-side routing
- * - Toast notifications for user feedback
- * - Keep-alive service to prevent server from sleeping
- * - Data prefetching for faster perceived load times
- * 
- * PERFORMANCE OPTIMIZATIONS:
- * - Parallel prefetching of critical data
- * - Keep-alive service to prevent cold starts
- * - React Query caching for reduced API calls
- */
-
 import { useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -25,10 +7,10 @@ import { queryClient, queryKeys } from '@/services/queryClient'
 import { router } from '@/router'
 import { ErrorBoundary, SkipLink } from '@/components/common'
 import { publicApi } from '@/services/api'
+import { prefetchMediaUrls } from '@/hooks/useMediaUrl'
 
-/**
- * PERFORMANCE: Prefetch critical data on app load using parallel requests
- */
+const SHOWS_LIMIT = 100
+
 async function prefetchCriticalData(): Promise<void> {
     await Promise.all([
         queryClient.prefetchQuery({
@@ -36,10 +18,18 @@ async function prefetchCriticalData(): Promise<void> {
             queryFn: publicApi.getSettings,
             staleTime: 1000 * 60 * 15,
         }),
-        queryClient.prefetchQuery({
-            queryKey: queryKeys.shows.list({ limit: 24 }),
-            queryFn: () => publicApi.getShows({ limit: 24 }),
+        queryClient.prefetchInfiniteQuery({
+            queryKey: queryKeys.shows.list({ limit: SHOWS_LIMIT }),
+            queryFn: ({ pageParam }) => publicApi.getShows({ cursor: pageParam || undefined, limit: SHOWS_LIMIT }),
+            initialPageParam: '',
             staleTime: 1000 * 60 * 5,
+        }).then(() => {
+            // Prefetch thumbnail images after shows are cached
+            const cached = queryClient.getQueryData<{ pages: { items: { imageMediaId?: string; cardThumbnail?: string }[] }[] }>(
+                queryKeys.shows.list({ limit: SHOWS_LIMIT })
+            )
+            const ids = cached?.pages?.flatMap(p => p.items).map(s => s.cardThumbnail || s.imageMediaId)
+            if (ids?.length) prefetchMediaUrls(ids, 'thumbnail')
         }),
     ]).catch((error) => {
         console.warn('Prefetch failed:', error)
@@ -55,7 +45,7 @@ export function App() {
             <QueryClientProvider client={queryClient}>
                 <AuthProvider>
                     <SkipLink />
-                    <RouterProvider router={router} />
+                    <RouterProvider router={router} future={{ v7_startTransition: true }} />
                     <Toaster
                         position="bottom-left"
                         toastOptions={{
