@@ -129,7 +129,7 @@ export function UserProfilePage() {
             setCopiedCode(code)
             toast.success('הקוד הועתק!')
             setTimeout(() => setCopiedCode(null), 2000)
-        } catch (error) {
+        } catch {
             toast.error('שגיאה בהעתקת הקוד')
         }
     }

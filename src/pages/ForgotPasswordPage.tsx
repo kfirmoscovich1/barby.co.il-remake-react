@@ -27,7 +27,7 @@ export function ForgotPasswordPage() {
             await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
             setIsSubmitted(true)
             toast.success('קוד איפוס נשלח לאימייל שלך')
-        } catch (error) {
+        } catch {
             toast.error('שגיאה בשליחת קוד האיפוס')
         } finally {
             setIsLoading(false)

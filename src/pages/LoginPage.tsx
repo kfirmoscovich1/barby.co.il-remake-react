@@ -29,7 +29,7 @@ export function LoginPage() {
             await login(data.email, data.password)
             toast.success('התחברת בהצלחה!')
             navigate('/admin')
-        } catch (error) {
+        } catch {
             toast.error('אימייל או סיסמה שגויים')
         } finally {
             setIsLoading(false)

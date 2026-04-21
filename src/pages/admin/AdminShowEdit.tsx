@@ -87,15 +87,15 @@ export function AdminShowEdit() {
                 status: show.status,
                 isStanding: show.isStanding !== false, // default true
                 is360: show.is360 || false,
-                isInternational: (show as any).isInternational || false,
+                isInternational: show.isInternational || false,
                 ticketTiers: show.ticketTiers?.length > 0
-                    ? show.ticketTiers.map(t => ({ ...t, quantity: (t as any).quantity || 0 }))
+                    ? show.ticketTiers.map(t => ({ ...t, quantity: t.quantity || 0 }))
                     : [{ label: 'כניסה רגילה', price: 0, currency: 'ILS', quantity: 0 }],
                 tags: show.tags || [],
                 featured: show.featured,
                 published: show.published !== false, // default true
                 archived: show.archived,
-                publishDelay: (show as any).publishDelay || '',
+                publishDelay: show.publishDelay || '',
             })
             // Load existing image preview from media
             if (show.imageMediaId) {
