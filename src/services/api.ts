@@ -158,10 +158,10 @@ async function resizeImage(
                 const ctx = canvas.getContext('2d')
                 if (!ctx) { reject(new Error('Canvas context not available')); return }
                 ctx.drawImage(img, 0, 0, width, height)
-                const dataUrl = canvas.toDataURL('image/jpeg', quality)
+                const dataUrl = canvas.toDataURL('image/webp', quality)
                 const base64 = dataUrl.split(',')[1]
                 const sizeBytes = Math.round(base64.length * 0.75)
-                resolve({ base64, width, height, sizeBytes, contentType: 'image/jpeg' })
+                resolve({ base64, width, height, sizeBytes, contentType: 'image/webp' })
             }
             img.onerror = reject
             img.src = e.target!.result as string
@@ -181,16 +181,14 @@ async function createCardThumbnail(mediaId: string): Promise<string | null> {
         if (!docSnap.exists()) return null
         const data = docSnap.data()
 
-        const thumb = (data.variants as { name: string; dataBase64: string; contentType: string }[] | undefined)
-            ?.find(v => v.name === 'thumbnail')
-        const base64 = thumb?.dataBase64 || data.dataBase64 as string
-        const contentType = thumb?.contentType || data.contentType as string || 'image/jpeg'
+        const base64 = data.dataBase64 as string
+        const contentType = data.contentType as string || 'image/webp'
         if (!base64) return null
 
         return new Promise<string | null>((resolve) => {
             const img = new Image()
             img.onload = () => {
-                const SIZE = 120
+                const SIZE = 400
                 const canvas = document.createElement('canvas')
                 canvas.width = SIZE
                 canvas.height = SIZE
@@ -203,7 +201,7 @@ async function createCardThumbnail(mediaId: string): Promise<string | null> {
                 const sx = (img.width - sw) / 2
                 const sy = (img.height - sh) / 2
                 ctx.drawImage(img, sx, sy, sw, sh, 0, 0, SIZE, SIZE)
-                resolve(canvas.toDataURL('image/jpeg', 0.5))
+                resolve(canvas.toDataURL('image/webp', 0.88))
             }
             img.onerror = () => resolve(null)
             img.src = `data:${contentType};base64,${base64}`
@@ -539,6 +537,20 @@ export const adminApi = {
         return snapshot.docs.length
     },
 
+    regenerateCardThumbnails: async (onProgress?: (done: number, total: number) => void): Promise<number> => {
+        const snapshot = await getDocs(query(collection(db, 'shows'), where('imageMediaId', '!=', null)))
+        const shows = snapshot.docs.filter(d => d.data().imageMediaId)
+        let done = 0
+        for (const showDoc of shows) {
+            const imageMediaId = showDoc.data().imageMediaId as string
+            const thumb = await createCardThumbnail(imageMediaId)
+            if (thumb) await updateDoc(showDoc.ref, { cardThumbnail: thumb, updatedAt: serverTimestamp() })
+            done++
+            onProgress?.(done, shows.length)
+        }
+        return done
+    },
+
     // Pages
     getPages: async (params?: { page?: number; limit?: number }) => {
         const snapshot = await getDocs(collection(db, 'pages'))
@@ -683,9 +695,9 @@ export const adminApi = {
 
     uploadMedia: async (file: File, altText?: string) => {
         const user = requireAuth()
-        const main = await resizeImage(file, 1920, 1080, 0.8)
+        const main = await resizeImage(file, 1920, 1080, 0.92)
         const thumb = file.type.startsWith('image/')
-            ? await resizeImage(file, 400, 300, 0.7)
+            ? await resizeImage(file, 400, 300, 0.85)
             : null
 
         const mediaData = {

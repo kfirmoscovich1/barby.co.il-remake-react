@@ -77,7 +77,9 @@ export function AdminSettings() {
                     wazeUrl: data.settings.footer?.wazeUrl || '',
                 },
             })
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setMarqueeItems(data.settings.marqueeItems || [])
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSocialLinks(data.settings.footer?.socialLinks || [])
         }
     }, [data, reset])

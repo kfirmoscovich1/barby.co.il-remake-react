@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import DOMPurify from 'dompurify'
@@ -76,13 +76,6 @@ export function ShowDetailPage() {
         },
     })
 
-    // Reset quantities when show changes
-    const ticketTiersCount = show?.ticketTiers?.length ?? 0
-    useEffect(() => {
-        if (ticketTiersCount > 0) {
-            setQuantities(prev => prev.length === ticketTiersCount ? prev : new Array(ticketTiersCount).fill(0))
-        }
-    }, [ticketTiersCount])
 
     if (isLoading) {
         return <ShowDetailSkeleton />

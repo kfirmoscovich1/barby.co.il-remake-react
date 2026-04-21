@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { adminApi } from '@/services/api'
@@ -8,11 +8,22 @@ import { useAuth } from '@/context/AuthContext'
 
 export function AdminDashboard() {
     const { isAdmin } = useAuth()
+    const [regenState, setRegenState] = useState<{ running: boolean; done: number; total: number; finished: boolean }>({
+        running: false, done: 0, total: 0, finished: false,
+    })
 
     // Auto-archive shows whose date has passed
     useEffect(() => {
         adminApi.autoArchivePastShows().catch(() => { /* silent */ })
     }, [])
+
+    async function handleRegenThumbnails() {
+        setRegenState({ running: true, done: 0, total: 0, finished: false })
+        await adminApi.regenerateCardThumbnails((done, total) => {
+            setRegenState(s => ({ ...s, done, total }))
+        })
+        setRegenState(s => ({ ...s, running: false, finished: true }))
+    }
 
     const { data: showsData, isLoading: isLoadingShows } = useQuery({
         queryKey: queryKeys.admin.shows.list({ limit: 5 }),
@@ -178,6 +189,17 @@ export function AdminDashboard() {
                             >
                                 יומן פעולות
                             </Link>
+                            <button
+                                onClick={handleRegenThumbnails}
+                                disabled={regenState.running}
+                                className="px-4 py-2 bg-barby-gold/10 text-barby-gold hover:bg-barby-gold/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {regenState.running
+                                    ? `מעדכן תמונות... ${regenState.done}/${regenState.total || '?'}`
+                                    : regenState.finished
+                                        ? `✓ עודכנו ${regenState.done} תמונות`
+                                        : 'עדכון תמונות כרטיסים'}
+                            </button>
                         </div>
                     </CardContent>
                 </Card>
