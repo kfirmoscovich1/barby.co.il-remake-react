@@ -9,12 +9,23 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-    // Ensure a single copy of ProseMirror is bundled — prevents "Cannot set properties of undefined" crash
+    // Ensure a single copy of each ProseMirror package — prevents "Cannot set properties of undefined" crash
     dedupe: [
+      '@tiptap/core',
+      '@tiptap/pm',
+      '@tiptap/react',
       'prosemirror-model',
       'prosemirror-state',
       'prosemirror-view',
       'prosemirror-transform',
+      'prosemirror-commands',
+      'prosemirror-keymap',
+      'prosemirror-history',
+      'prosemirror-inputrules',
+      'prosemirror-gapcursor',
+      'prosemirror-dropcursor',
+      'prosemirror-schema-list',
+      'prosemirror-schema-basic',
     ],
   },
   server: {
@@ -43,7 +54,6 @@ export default defineConfig({
           if (id.includes('node_modules/react-dom')) return 'vendor'
           if (id.includes('node_modules/react-router')) return 'vendor'
           if (id.includes('node_modules/@tanstack/react-query')) return 'query'
-          if (id.includes('node_modules/@tiptap') || id.includes('node_modules/prosemirror')) return 'editor'
           if (id.includes('node_modules/zod')) return 'zod'
         },
       },
