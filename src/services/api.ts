@@ -10,7 +10,7 @@ import {
     createUserWithEmailAndPassword, getAuth as getFirebaseAuth
 } from 'firebase/auth'
 import { initializeApp, deleteApp } from 'firebase/app'
-import { db, auth } from '@/lib/firebase'
+import { db, auth, firebaseConfig } from '@/lib/firebase'
 import type {
     Show, Page, SiteSettings, User, Media, AuditLog,
     PaginatedResponse, FAQItem, GiftCard, CreateGiftCardRequest,
@@ -635,7 +635,7 @@ export const adminApi = {
     createUser: async (data: Partial<User> & { password: string }) => {
         requireAuth()
         // Use a secondary Firebase app to create user without affecting current admin session
-        const tempApp = initializeApp(auth.app.options, `temp-${Date.now()}`)
+        const tempApp = initializeApp(firebaseConfig, `temp-${Date.now()}`)
         try {
             const tempAuth = getFirebaseAuth(tempApp)
             const credential = await createUserWithEmailAndPassword(tempAuth, data.email!, data.password)

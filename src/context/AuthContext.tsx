@@ -71,12 +71,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
+        // Firebase Auth can throw an unhandled rejection when a stored token is
+        // corrupted or uses a legacy format ("Cannot read properties of undefined
+        // (reading 'payload')"). Catch it and sign the user out gracefully.
+        const handleAuthRejection = (event: PromiseRejectionEvent) => {
+            const msg: string = event.reason?.message ?? ''
+            if (msg.includes('payload') || msg.includes('token')) {
+                event.preventDefault()
+                firebaseSignOut(auth).catch(() => {})
+                setUser(null)
+                setIsLoading(false)
+            }
+        }
+        window.addEventListener('unhandledrejection', handleAuthRejection)
+
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 try {
                     const userProfile = await getOrCreateUserDoc(firebaseUser)
                     if (!userProfile) {
-                        // User is deactivated — sign them out
                         await firebaseSignOut(auth)
                         setUser(null)
                     } else {
@@ -92,7 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsLoading(false)
         })
 
-        return unsubscribe
+        return () => {
+            window.removeEventListener('unhandledrejection', handleAuthRejection)
+            unsubscribe()
+        }
     }, [queryClient])
 
     const login = async (email: string, password: string) => {
