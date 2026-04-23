@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet, Link } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
 
@@ -43,9 +43,30 @@ function SuspenseAdmin() {
     return <Suspense fallback={<LazyFallback />}><Outlet /></Suspense>
 }
 
-// Protected route wrapper
-function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolean }) {
-    const { isAuthenticated, isAdmin, isEditor, isLoading } = useAuth()
+function AccessDenied() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-barby-dark" dir="rtl">
+            <div className="text-center space-y-4 p-8 max-w-sm">
+                <svg className="w-16 h-16 mx-auto text-barby-gold/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h1 className="text-2xl font-frank font-bold text-barby-cream">גישה נדחתה</h1>
+                <p className="text-barby-cream/60 text-sm">אין לך הרשאות מנהל לגשת לאזור זה</p>
+                <Link
+                    to="/"
+                    className="inline-block mt-2 px-6 py-2 bg-barby-gold text-barby-dark font-bold text-sm hover:bg-barby-gold/80 transition-colors"
+                >
+                    חזרה לדף הבית
+                </Link>
+            </div>
+        </div>
+    )
+}
+
+// Protected route wrapper — admin access only
+function ProtectedRoute() {
+    const { isAuthenticated, isAdmin, isLoading } = useAuth()
 
     if (isLoading) return <LazyFallback />
 
@@ -53,12 +74,8 @@ function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolean }) {
         return <Navigate to="/login" replace />
     }
 
-    if (requireAdmin && !isAdmin) {
-        return <Navigate to="/admin" replace />
-    }
-
-    if (!isEditor) {
-        return <Navigate to="/" replace />
+    if (!isAdmin) {
+        return <AccessDenied />
     }
 
     return <Outlet />
@@ -144,13 +161,8 @@ export const router = createBrowserRouter([
                             { path: '/admin/faq', element: <AdminFAQ /> },
                             { path: '/admin/settings', element: <AdminSettings /> },
                             { path: '/admin/media', element: <AdminMedia /> },
-                            {
-                                element: <ProtectedRoute requireAdmin />,
-                                children: [
-                                    { path: '/admin/users', element: <AdminUsers /> },
-                                    { path: '/admin/audit', element: <AdminAuditLog /> },
-                                ],
-                            },
+                            { path: '/admin/users', element: <AdminUsers /> },
+                            { path: '/admin/audit', element: <AdminAuditLog /> },
                         ],
                     },
                 ],
